@@ -60,6 +60,191 @@ pre {
   font-size: 13px;
 }
 
+/* ---------- Phase 2: link list, filters, cards, toast ---------- */
+
+/* Extra colours. Dark-mode values come in the media query just below. */
+:root {
+  --surface: #f5f6f8;
+  --danger: #b42318;
+  --danger-bg: #fdecea;
+  --topic-bg: #e8eaee;
+  --on-accent: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1d1d20;
+    --danger: #ff8a80;
+    --danger-bg: #3b1f1d;
+    --topic-bg: #2c2d31;
+    --on-accent: #0b0b0b;
+  }
+}
+
+/* Nothing on the page should ever be wider than the screen. */
+html, body { overflow-x: hidden; }
+a { color: var(--accent); }
+
+button.primary { color: var(--on-accent); }
+
+.error { color: var(--danger); margin: 8px 0 0; font-weight: 600; }
+
+/* Top bar: title + Inbox/Done switch */
+.topbar { margin-bottom: 12px; }
+.nav { display: flex; gap: 8px; }
+.nav a {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--fg);
+}
+.nav a[aria-current="page"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+/* Search, filters and the "N links / Surprise me" row */
+.toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+input[type="search"] { min-height: 44px; }
+
+.filters { border: 1px solid var(--border); border-radius: 8px; }
+.filters summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.filters[open] summary { border-bottom: 1px solid var(--border); }
+.filter-help { margin: 8px 12px 0; }
+/* Chips wrap onto several lines; if there are very many, the panel scrolls. */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+.filters[open] { max-height: 60vh; overflow-y: auto; }
+
+.chip {
+  min-height: 44px;
+  padding: 4px 14px;
+  border-radius: 22px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+/* Intent chips look different from topic chips: squarer, bold. */
+.chip-intent { border-radius: 8px; font-weight: 700; }
+/* "+tag": solid. "−tag": dashed, struck through. The symbol carries the meaning; colour only helps. */
+.chip-include { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+.chip-exclude {
+  background: var(--danger-bg);
+  border: 2px dashed var(--danger);
+  color: var(--danger);
+  text-decoration: line-through;
+  font-weight: 700;
+}
+
+.summary-row { display: flex; align-items: center; gap: 8px; }
+.count { margin: 0; font-weight: 700; flex: 1; min-width: 0; }
+.count .muted { font-weight: 400; }
+
+.empty { text-align: center; color: var(--muted); padding: 32px 8px; }
+
+/* Cards */
+.cards { list-style: none; margin: 0; padding: 0 0 96px; display: flex; flex-direction: column; gap: 12px; }
+.card {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  min-width: 0;
+}
+.card-title {
+  display: block;
+  font-weight: 700;
+  line-height: 1.3;
+  /* Long titles and URLs wrap instead of pushing the page wider. */
+  overflow-wrap: anywhere;
+}
+.card-meta { margin: 4px 0 8px; overflow-wrap: anywhere; }
+
+.tags { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 12px 8px; align-items: center; }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+/* Topic tags: soft rounded pills. Intent tag: accent outline, squarer, bold. */
+.tag-topic { background: var(--topic-bg); border-radius: 16px; }
+.tag-intent {
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  border-radius: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+/* The × is a 44x44 tap area that sticks out above and below the small pill. */
+.tag-x {
+  min-width: 44px;
+  min-height: 44px;
+  margin: -6px -10px -6px 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.editor { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+select {
+  min-height: 44px;
+  padding: 0 10px;
+  font-size: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+}
+.add-tag { display: flex; gap: 8px; flex: 1 1 180px; min-width: 0; }
+.add-tag input { min-height: 44px; min-width: 0; flex: 1; }
+
+.card-actions { display: flex; justify-content: flex-end; }
+
+/* The Undo toast: fixed to the bottom of the screen, above the iPhone home bar. */
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  max-width: 608px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 4px 16px;
+  border-radius: 12px;
+  background: var(--fg);
+  color: var(--bg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+.toast-action {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  min-width: 64px;
 /* Slim bar shown at the top while the phone is offline (see PwaClient.tsx). */
 .offline-banner {
   position: sticky;

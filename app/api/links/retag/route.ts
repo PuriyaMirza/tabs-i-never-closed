@@ -2,9 +2,9 @@
 // Claude call failed when they were saved). Handles up to 20 per call; call
 // again if "remaining" is above 0.
 // Optional body {"ids": [1, 2]} retags those specific links instead.
-// Requires the header  x-links-secret: <LINKS_SECRET>
+// Needs the login cookie or the header  x-links-secret: <LINKS_SECRET>
 import { NextResponse } from "next/server";
-import { hasValidSecret } from "@/lib/auth.ts";
+import { isAuthorized } from "@/lib/auth.ts";
 import { sql } from "@/lib/db.ts";
 import { enrichLinks } from "@/lib/enrich.ts";
 
@@ -12,8 +12,11 @@ export const maxDuration = 60;
 const BATCH = 20;
 
 export async function POST(req: Request) {
-  if (!hasValidSecret(req)) {
-    return NextResponse.json({ error: "Wrong or missing x-links-secret header" }, { status: 401 });
+  if (!(await isAuthorized(req))) {
+    return NextResponse.json(
+      { error: "Not logged in, and wrong or missing x-links-secret header", message: "Error: not logged in" },
+      { status: 401 },
+    );
   }
 
   // Body is optional, so ignore parse errors.

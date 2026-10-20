@@ -1,12 +1,23 @@
-// Placeholder home page. The real link list arrives in Phase 2.
-export default function Home() {
+// The inbox. This is a server component: it reads the links from the database
+// and puts them straight into the page's HTML. (They are NOT fetched by
+// scripts afterwards.) That way the saved copy of the page that the phone
+// keeps for offline reading already contains the links.
+import { requireLogin } from "@/lib/page-auth.ts";
+import { getActiveLinks, getAllTopicTags } from "@/lib/links.ts";
+import Nav from "./_components/Nav.tsx";
+import InboxClient from "./_components/InboxClient.tsx";
+
+// Always read fresh data; never build this page ahead of time.
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  await requireLogin();
+  const [links, allTags] = await Promise.all([getActiveLinks(), getAllTopicTags()]);
+
   return (
     <main>
-      <h1>Tabs I Never Closed</h1>
-      <p>The link list is coming in Phase 2.</p>
-      <p>
-        For now, use the <a href="/test">test page</a> to save links and check that tagging works.
-      </p>
+      <Nav current="inbox" />
+      <InboxClient initialLinks={links} allTags={allTags} serverNow={new Date().toISOString()} />
     </main>
   );
 }

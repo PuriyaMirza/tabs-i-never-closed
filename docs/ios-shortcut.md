@@ -127,13 +127,10 @@ add it to Favorites to put it near the top). If it isn't in that list at all,
 go back to step 2 and check **Show in Share Sheet** is on and that **URLs**
 and **Text** are ticked.
 
-**Wrong secret.**
-The server answers with the error "Wrong or missing x-links-secret header".
-Because that answer has no `message` in it, you may see a blank
-notification instead. Open the Passwords app, copy **Tabs secret** again,
-open the Shortcut, tap the header's value, delete it and paste the new one
-(no spaces before or after). To see the real answer, run the Shortcut from
-inside the Shortcuts app and tap the result under **Get Contents of URL**.
+**The notification says "Error: wrong secret".**
+The secret in the Shortcut doesn't match `LINKS_SECRET` in Vercel. Open the
+Passwords app, copy **Tabs secret** again, open the Shortcut, tap the
+header's value, delete it and paste the new one (no spaces before or after).
 
 **Nothing happens at all.**
 The Shortcut probably doesn't have permission to connect. Run it once from
@@ -142,6 +139,6 @@ inside the Shortcuts app (tap it). When iOS asks to connect to
 Allow" by mistake, the easiest fix is to delete the Shortcut and rebuild it,
 then tap **Allow** when asked. Also check you have an internet connection.
 
-**The notification says "Nothing to save".**
+**The notification says "Error: no valid link to save".**
 The app found no web links in what you shared (for example, a plain note with
 no URL). Share the page itself rather than a text selection.

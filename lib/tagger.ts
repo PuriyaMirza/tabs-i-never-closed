@@ -2,7 +2,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { INTENTS, type Intent } from "./db.ts";
+import { INTENTS, type Intent } from "./types.ts";
+import { cleanTags } from "./tags.ts";
+
+// cleanTags lives in tags.ts so the browser can use it without loading the
+// Claude SDK. It's re-exported here so existing imports keep working.
+export { cleanTags };
 
 // Reads ANTHROPIC_API_KEY from the environment automatically.
 // Retries twice on rate limits / server errors; gives up after 30s per try.
@@ -56,22 +61,4 @@ export async function tagLink(
   }
   const { topic_tags, intent_tag } = response.parsed_output;
   return { topic_tags: cleanTags(topic_tags, existingTags), intent_tag };
-}
-
-/**
- * Tidies tags: lowercase, trimmed, max 2, no duplicates. If Claude returns
- * a plural like "recipes" while "recipe" already exists, use the existing one.
- */
-export function cleanTags(tags: string[], existingTags: string[]): string[] {
-  const existing = new Set(existingTags);
-  const out: string[] = [];
-  for (const raw of tags) {
-    let tag = raw.toLowerCase().replace(/^#/, "").replace(/\s+/g, " ").trim().slice(0, 40);
-    if (!tag) continue;
-    if (!existing.has(tag) && tag.endsWith("s") && existing.has(tag.slice(0, -1))) {
-      tag = tag.slice(0, -1);
-    }
-    if (!out.includes(tag)) out.push(tag);
-  }
-  return out.slice(0, 2);
 }
