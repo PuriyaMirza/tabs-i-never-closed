@@ -32,6 +32,8 @@ All calls need the header `x-links-secret: <LINKS_SECRET>`.
 
 `/test` is a small page for calling these from a phone browser.
 
+To save links from the iPhone share sheet, follow [`docs/ios-shortcut.md`](docs/ios-shortcut.md).
+
 ## Development
 
 ```
