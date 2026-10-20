@@ -1,13 +1,18 @@
 // Fetches a page's <title>. Never throws: on any problem it returns a
 // readable title built from the URL instead, so saving a link never fails
 // because a site was slow or blocked us.
-import { titleFromUrl } from "./url.ts";
+import { domainOf, titleFromUrl } from "./url.ts";
 
 const TIMEOUT_MS = 5000;
 // Titles live near the top of the HTML; no need to download whole pages.
 const MAX_BYTES = 512 * 1024;
 
 export async function fetchTitle(url: string): Promise<string> {
+  // YouTube shows servers a generic page titled just "YouTube", so ask its
+  // official oEmbed service for the real video title instead.
+  const videoTitle = await fetchYouTubeTitle(url);
+  if (videoTitle) return videoTitle;
+
   try {
     const res = await fetch(url, {
       redirect: "follow",
@@ -25,7 +30,7 @@ export async function fetchTitle(url: string): Promise<string> {
 
     const html = await readStart(res.body, MAX_BYTES);
     const title = extractTitle(html);
-    return title && !looksBlocked(title) ? title : titleFromUrl(url);
+    return title && isUsefulTitle(title, url) ? title : titleFromUrl(url);
   } catch {
     // Timeout, DNS failure, TLS error, … → fall back quietly.
     return titleFromUrl(url);
@@ -62,9 +67,37 @@ export function extractTitle(html: string): string | null {
   return clean.length > 0 ? clean.slice(0, 300) : null;
 }
 
-/** Bot-check pages have useless titles; treat them as "no title". */
-function looksBlocked(title: string): boolean {
-  return /^(just a moment|attention required|access denied|403 forbidden|robot check|are you a robot)/i.test(title);
+const YOUTUBE_HOSTS = new Set(["youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"]);
+
+/** Returns the video title for YouTube links, or null for anything else / on failure. */
+export async function fetchYouTubeTitle(url: string): Promise<string | null> {
+  if (!YOUTUBE_HOSTS.has(domainOf(url))) return null;
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}`,
+      { signal: AbortSignal.timeout(TIMEOUT_MS) },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { title?: unknown };
+    return typeof data.title === "string" && data.title.trim() ? data.title.trim().slice(0, 300) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Rejects titles that don't describe the page: bot-check pages ("Just a
+ * moment…") and titles that are only the site's name ("YouTube" on youtube.com).
+ */
+export function isUsefulTitle(title: string, url: string): boolean {
+  if (/^(just a moment|attention required|access denied|403 forbidden|robot check|are you a robot)/i.test(title)) {
+    return false;
+  }
+  const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const host = domainOf(url); // "youtube.com"
+  const siteName = host.split(".").slice(-2)[0]; // "youtube"
+  const t = squash(title);
+  return t !== squash(siteName) && t !== squash(host);
 }
 
 const NAMED_ENTITIES: Record<string, string> = {
