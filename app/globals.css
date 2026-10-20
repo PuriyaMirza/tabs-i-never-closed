@@ -245,4 +245,14 @@ select {
   font-weight: 700;
   text-decoration: underline;
   min-width: 64px;
+/* Slim bar shown at the top while the phone is offline (see PwaClient.tsx). */
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 6px 16px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 0.85rem;
+  text-align: center;
 }

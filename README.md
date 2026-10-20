@@ -43,6 +43,8 @@ Changing `APP_PASSWORD` logs every device out.
 
 `/test` is a small page for calling these from a phone browser.
 
+To save links from the iPhone share sheet, follow [`docs/ios-shortcut.md`](docs/ios-shortcut.md).
+
 ## Development
 
 ```
