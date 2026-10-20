@@ -17,16 +17,7 @@ export function sql(strings: TemplateStringsArray, ...values: unknown[]) {
   return client(strings, ...values);
 }
 
-export const INTENTS = ["read", "watch", "buy", "try", "reference"] as const;
-export type Intent = (typeof INTENTS)[number];
-
-export type Link = {
-  id: number;
-  url: string;
-  title: string;
-  domain: string;
-  topic_tags: string[];
-  intent_tag: Intent | null;
-  created_at: string;
-  done_at: string | null;
-};
+// These live in types.ts so browser code can use them without pulling in the
+// database driver. Re-exported here so server code can keep importing from db.ts.
+export { INTENTS } from "./types.ts";
+export type { Intent, Link } from "./types.ts";
