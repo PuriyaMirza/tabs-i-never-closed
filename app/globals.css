@@ -1,0 +1,61 @@
+/* Plain, functional styles. Designed for phones first (375px wide). */
+* { box-sizing: border-box; }
+
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #111111;
+  --muted: #666666;
+  --border: #d0d0d0;
+  --accent: #0a58ca;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #121212; --fg: #eeeeee; --muted: #9a9a9a; --border: #3a3a3a; --accent: #6ea8fe; }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+main { max-width: 640px; margin: 0 auto; padding: 16px; }
+
+h1 { font-size: 1.4rem; margin: 0 0 12px; }
+
+label { display: block; font-weight: 600; margin: 12px 0 4px; }
+
+/* 16px font on inputs stops iPhone Safari from zooming in when you tap them. */
+input, textarea, button { font: inherit; font-size: 16px; }
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+button {
+  min-height: 44px; /* comfortable tap target */
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:disabled { opacity: 0.5; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.muted { color: var(--muted); font-size: 0.9rem; }
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
