@@ -59,3 +59,15 @@ pre {
   border-radius: 8px;
   font-size: 13px;
 }
+
+/* Slim bar shown at the top while the phone is offline (see PwaClient.tsx). */
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 6px 16px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 0.85rem;
+  text-align: center;
+}
