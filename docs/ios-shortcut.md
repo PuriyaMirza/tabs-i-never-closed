@@ -21,8 +21,10 @@ where a name isn't exact, look for the closest match.
 
 ### 2. Make it appear in the share sheet
 
-1. Open the Shortcut's settings: tap the **info (i)** button, or the name at
-   the top and then **Details** (the exact spot depends on your iOS version).
+1. Open the Shortcut's settings: tap the **ⓘ** button in the toolbar at the
+   bottom of the editor, or the name at the top (with a small ⌄) and then
+   **Details** (the exact spot depends on your iOS version). If the first
+   action already reads "Receive … from Share Sheet", this is done.
 2. Turn on **Show in Share Sheet**.
 3. Tap **Share Sheet Types** (it may say "Any" or list several types).
    Choose only these and untick the rest:
@@ -42,21 +44,25 @@ where a name isn't exact, look for the closest match.
 ### 4. Send the links to the app (one request for all of them)
 
 1. Add the action **Get Contents of URL**.
-2. Tap the **URL** field and type exactly:
+2. Shortcuts may pre-fill this action with a blue **URLs** bubble
+   ("Get contents of URLs"). That would fetch the shared pages instead of
+   sending them to your app, so remove it: tap the bubble, then
+   **Clear Variable** (or delete it with the keyboard).
+3. In the now-empty address box, type exactly:
 
    ```
    https://tabs-i-never-closed.vercel.app/api/links
    ```
 
-3. Tap **Show More** (or the small arrow) on that action to reveal its
+4. Tap **Show More** (or the small arrow) on that action to reveal its
    options.
-4. Set **Method** to **POST**.
-5. Under **Headers**, tap **Add new header**:
+5. Set **Method** to **POST**.
+6. Under **Headers**, tap **Add new header**:
    - **Key:** `x-links-secret`
    - **Text (value):** paste your secret from the Passwords entry
      "Tabs secret". Paste it with no extra spaces or line breaks.
-6. Set **Request Body** to **JSON**.
-7. Under the JSON body, tap **Add new field** and pick **Text** as its
+7. Set **Request Body** to **JSON**.
+8. Under the JSON body, tap **Add new field** and pick **Text** as its
    type (not "List" or "Dictionary"):
    - **Key:** `urls`
    - **Value:** tap the value box. In the bar above the keyboard, choose
