@@ -4,6 +4,7 @@
 import { sql } from "./db.ts";
 import { fetchTitle } from "./title.ts";
 import { tagLink } from "./tagger.ts";
+import { formatExamples, getTaggingExamples } from "./learning.ts";
 
 type Target = { id: number; url: string; title: string; domain: string };
 
@@ -30,10 +31,14 @@ export async function enrichLinks(
         link.title = await fetchTitle(link.url); // never throws
         await sql`update links set title = ${link.title} where id = ${link.id}`;
       }
-      const result = await tagLink(link, tags);
+      // Show Claude how you tagged similar links (learning from your edits).
+      const examples = formatExamples(await getTaggingExamples(link.domain, link.id));
+      const result = await tagLink(link, tags, examples);
+      // Also remember Claude's guess, so later edits can be compared with it.
       await sql`
         update links
-        set topic_tags = ${result.topic_tags}, intent_tag = ${result.intent_tag}
+        set topic_tags = ${result.topic_tags}, intent_tag = ${result.intent_tag},
+            ai_topic_tags = ${result.topic_tags}, ai_intent_tag = ${result.intent_tag}
         where id = ${link.id}`;
       for (const t of result.topic_tags) if (!tags.includes(t)) tags.push(t);
       tagged.push(link.id);

@@ -66,16 +66,33 @@ export async function updateLink(id: number, patch: LinkPatch): Promise<Link | n
   const setTags = patch.topic_tags !== undefined;
   const setIntent = patch.intent_tag !== undefined;
 
+  // One statement does three things:
+  //   1. remember the link as it was ("before"),
+  //   2. apply the change ("updated"),
+  //   3. if the tags or intent actually changed, log it to tag_feedback, so
+  //      future tagging can learn from your edits (see learning.ts).
   // Marking done twice keeps the first time (coalesce), so a double tap changes nothing.
   const rows = await sql`
-    update links set
-      done_at = case
-        when ${setDone}::boolean then (case when ${patch.done ?? false}::boolean then coalesce(done_at, now()) else null end)
-        else done_at end,
-      topic_tags = case when ${setTags}::boolean then ${patch.topic_tags ?? []}::text[] else topic_tags end,
-      intent_tag = case when ${setIntent}::boolean then ${patch.intent_tag ?? null}::text else intent_tag end
-    where id = ${id}
-    returning id, url, title, domain, topic_tags, intent_tag, created_at, done_at`;
+    with before as (
+      select id, topic_tags, intent_tag from links where id = ${id}
+    ),
+    updated as (
+      update links set
+        done_at = case
+          when ${setDone}::boolean then (case when ${patch.done ?? false}::boolean then coalesce(done_at, now()) else null end)
+          else done_at end,
+        topic_tags = case when ${setTags}::boolean then ${patch.topic_tags ?? []}::text[] else topic_tags end,
+        intent_tag = case when ${setIntent}::boolean then ${patch.intent_tag ?? null}::text else intent_tag end
+      where id = ${id}
+      returning id, url, title, domain, topic_tags, intent_tag, created_at, done_at
+    ),
+    logged as (
+      insert into tag_feedback (link_id, before_topic_tags, before_intent_tag, after_topic_tags, after_intent_tag)
+      select u.id, b.topic_tags, b.intent_tag, u.topic_tags, u.intent_tag
+      from updated u join before b on b.id = u.id
+      where b.topic_tags is distinct from u.topic_tags or b.intent_tag is distinct from u.intent_tag
+    )
+    select * from updated`;
   return rows[0] ? toLink(rows[0]) : null;
 }
 
