@@ -78,3 +78,12 @@ export async function updateLink(id: number, patch: LinkPatch): Promise<Link | n
     returning id, url, title, domain, topic_tags, intent_tag, created_at, done_at`;
   return rows[0] ? toLink(rows[0]) : null;
 }
+
+/** How many links are still open and how many are done (for the footer). */
+export async function getCounts(): Promise<{ open: number; done: number }> {
+  const [row] = await sql`
+    select count(*) filter (where done_at is null)::int as open,
+           count(*) filter (where done_at is not null)::int as done
+    from links`;
+  return { open: row.open as number, done: row.done as number };
+}

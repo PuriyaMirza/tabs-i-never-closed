@@ -22,11 +22,14 @@ import {
 import { insertNewestFirst } from "@/lib/order.ts";
 import { patchLink } from "./api.ts";
 import LinkCard from "./LinkCard.tsx";
+import Footer from "./Footer.tsx";
 import Toast, { useToast } from "./Toast.tsx";
 import { useNow } from "./useNow.ts";
 
 type Props = {
   initialLinks: Link[];
+  /** How many links were already done when the page loaded (for the footer). */
+  initialDoneCount: number;
   /** All topic tags in the database (also from done links), for autocomplete. */
   allTags: string[];
   serverNow: string;
@@ -34,9 +37,13 @@ type Props = {
 
 const SUGGESTIONS_ID = "topic-suggestions";
 
-export default function InboxClient({ initialLinks, allTags, serverNow }: Props) {
+export default function InboxClient({ initialLinks, initialDoneCount, allTags, serverNow }: Props) {
   const [links, setLinks] = useState(initialLinks);
+  const [doneCount, setDoneCount] = useState(initialDoneCount);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
+  // Search box and filter panel stay tucked away until their word is tapped.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const now = useNow(serverNow);
   const { toast, show, hide } = useToast();
 
@@ -62,6 +69,7 @@ export default function InboxClient({ initialLinks, allTags, serverNow }: Props)
     setLinks((prev) => prev.filter((l) => l.id !== link.id));
     try {
       await patchLink(link.id, { done: true });
+      setDoneCount((n) => n + 1);
       show("Marked done", { label: "Undo", run: () => undoDone(link) });
     } catch (err) {
       setLinks((prev) => insertNewestFirst(prev, link, (l) => l.created_at));
@@ -72,6 +80,7 @@ export default function InboxClient({ initialLinks, allTags, serverNow }: Props)
   async function undoDone(link: Link) {
     try {
       const restored = await patchLink(link.id, { done: false });
+      setDoneCount((n) => n - 1);
       setLinks((prev) => insertNewestFirst(prev, restored, (l) => l.created_at));
     } catch (err) {
       show(err instanceof Error ? `Couldn't undo: ${err.message}` : "Couldn't undo");
@@ -86,68 +95,103 @@ export default function InboxClient({ initialLinks, allTags, serverNow }: Props)
     if (pick) window.open(pick.url, "_blank", "noopener,noreferrer");
   }
 
+  const showSearch = searchOpen || filters.query !== "";
+
   return (
     <>
-      <div className="toolbar">
-        <input
-          type="search"
-          aria-label="Search title, link or website"
-          placeholder="Search title, link or site"
-          value={filters.query}
-          onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value }))}
-          autoCapitalize="none"
-          autoCorrect="off"
-        />
-        <details className="filters">
-          <summary>
-            Filters{activeChipCount > 0 ? ` (${activeChipCount} on)` : ""}
-          </summary>
-          <p className="muted filter-help">
-            Tap a tag once to show only links with it (+), again to hide links with it (−), a third time to turn it off.
-          </p>
-          <div className="chips" role="group" aria-label="Intent filters">
-            {INTENTS.map((intent) => (
-              <Chip
-                key={intent}
-                label={intent}
-                kind="intent"
-                mode={activeFilters.tags[intentKey(intent)]}
-                onTap={() => setFilters((f) => ({ ...f, tags: cycleTag(f.tags, intentKey(intent)) }))}
-              />
-            ))}
-          </div>
-          {topics.length > 0 && (
-            <div className="chips" role="group" aria-label="Topic filters">
-              {topics.map((tag) => (
+      <section className="toolbar" aria-label="Search and filters">
+        <p className="count" aria-live="polite">
+          ({filtering ? `${visible.length} of ${links.length}` : links.length} open)
+        </p>
+        <p className="controls">
+          <button
+            type="button"
+            className="text-link"
+            aria-expanded={showSearch}
+            onClick={() => {
+              // Closing the search box also clears what was typed.
+              if (showSearch) setFilters((f) => ({ ...f, query: "" }));
+              setSearchOpen(!showSearch);
+            }}
+          >
+            Search
+          </button>
+          <span className="sep" aria-hidden="true">·</span>
+          <button
+            type="button"
+            className="text-link"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((o) => !o)}
+          >
+            Filters{activeChipCount > 0 ? ` (${activeChipCount})` : ""}
+          </button>
+          <span className="sep" aria-hidden="true">·</span>
+          <button type="button" className="text-link" disabled={visible.length === 0} onClick={surpriseMe}>
+            Surprise me
+          </button>
+          {filtering && (
+            <>
+              <span className="sep" aria-hidden="true">·</span>
+              <button
+                type="button"
+                className="text-link"
+                onClick={() => {
+                  setFilters(emptyFilters);
+                  setSearchOpen(false);
+                }}
+              >
+                Clear
+              </button>
+            </>
+          )}
+        </p>
+
+        {showSearch && (
+          <input
+            type="search"
+            className="search"
+            aria-label="Search title, link or website"
+            placeholder="Title, link or site"
+            value={filters.query}
+            onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value }))}
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect="off"
+          />
+        )}
+
+        {filtersOpen && (
+          <div className="filter-panel">
+            <p className="filter-help">
+              Tap a tag once to show only links with it (+), again to hide links with it (−), a third time to turn it off.
+            </p>
+            <div className="chips" role="group" aria-label="Intent filters">
+              {INTENTS.map((intent) => (
                 <Chip
-                  key={tag}
-                  label={tag}
-                  kind="topic"
-                  mode={activeFilters.tags[topicKey(tag)]}
-                  onTap={() => setFilters((f) => ({ ...f, tags: cycleTag(f.tags, topicKey(tag)) }))}
+                  key={intent}
+                  label={intent}
+                  kind="intent"
+                  mode={activeFilters.tags[intentKey(intent)]}
+                  onTap={() => setFilters((f) => ({ ...f, tags: cycleTag(f.tags, intentKey(intent)) }))}
                 />
               ))}
             </div>
-          )}
-        </details>
-
-        <div className="summary-row">
-          <p className="count" aria-live="polite">
-            {visible.length} {visible.length === 1 ? "link" : "links"}
-            {filtering && links.length !== visible.length && (
-              <span className="muted"> of {links.length}</span>
+            {topics.length > 0 && (
+              <div className="chips" role="group" aria-label="Topic filters">
+                {topics.map((tag) => (
+                  <Chip
+                    key={tag}
+                    label={tag}
+                    kind="topic"
+                    mode={activeFilters.tags[topicKey(tag)]}
+                    onTap={() => setFilters((f) => ({ ...f, tags: cycleTag(f.tags, topicKey(tag)) }))}
+                  />
+                ))}
+              </div>
             )}
-          </p>
-          {filtering && (
-            <button type="button" onClick={() => setFilters(emptyFilters)}>
-              Clear
-            </button>
-          )}
-          <button type="button" className="primary" disabled={visible.length === 0} onClick={surpriseMe}>
-            Surprise me
-          </button>
-        </div>
-      </div>
+          </div>
+        )}
+      </section>
 
       {/* One shared list of suggestions for every card's "Add tag" box. */}
       <datalist id={SUGGESTIONS_ID}>
@@ -161,7 +205,7 @@ export default function InboxClient({ initialLinks, allTags, serverNow }: Props)
       ) : visible.length === 0 ? (
         <p className="empty">No links match these filters.</p>
       ) : (
-        <ul className="cards">
+        <ul className="rows">
           {visible.map((link) => (
             <LinkCard
               key={link.id}
@@ -177,6 +221,7 @@ export default function InboxClient({ initialLinks, allTags, serverNow }: Props)
         </ul>
       )}
 
+      <Footer open={links.length} done={doneCount} />
       <Toast toast={toast} onClose={hide} />
     </>
   );
@@ -200,7 +245,7 @@ function Chip({
   return (
     <button
       type="button"
-      className={`chip chip-${kind} ${mode ? `chip-${mode}` : ""}`}
+      className={`chip chip-filter${kind === "intent" ? " chip-filter-intent" : ""}${mode ? ` is-${mode}` : ""}`}
       aria-label={`${kind} ${label}: ${stateText}`}
       onClick={onTap}
     >

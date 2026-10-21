@@ -6,11 +6,20 @@ import type { Link } from "@/lib/types.ts";
 import { insertNewestFirst } from "@/lib/order.ts";
 import { patchLink } from "./api.ts";
 import LinkCard from "./LinkCard.tsx";
+import Footer from "./Footer.tsx";
 import Toast, { useToast } from "./Toast.tsx";
 import { useNow } from "./useNow.ts";
 
-export default function DoneClient({ initialLinks, serverNow }: { initialLinks: Link[]; serverNow: string }) {
+type Props = {
+  initialLinks: Link[];
+  /** How many links were still open when the page loaded (for the footer). */
+  initialOpenCount: number;
+  serverNow: string;
+};
+
+export default function DoneClient({ initialLinks, initialOpenCount, serverNow }: Props) {
   const [links, setLinks] = useState(initialLinks);
+  const [openCount, setOpenCount] = useState(initialOpenCount);
   const now = useNow(serverNow);
   const { toast, show, hide } = useToast();
 
@@ -21,6 +30,7 @@ export default function DoneClient({ initialLinks, serverNow }: { initialLinks: 
     setLinks((prev) => prev.filter((l) => l.id !== link.id));
     try {
       await patchLink(link.id, { done: false });
+      setOpenCount((n) => n + 1);
       show("Restored to your inbox", { label: "Undo", run: () => undoRestore(link) });
     } catch (err) {
       setLinks((prev) => insertNewestFirst(prev, link, byDoneTime));
@@ -31,6 +41,7 @@ export default function DoneClient({ initialLinks, serverNow }: { initialLinks: 
   async function undoRestore(link: Link) {
     try {
       const done = await patchLink(link.id, { done: true });
+      setOpenCount((n) => n - 1);
       setLinks((prev) => insertNewestFirst(prev, done, byDoneTime));
     } catch (err) {
       show(err instanceof Error ? `Couldn't undo: ${err.message}` : "Couldn't undo");
@@ -39,13 +50,13 @@ export default function DoneClient({ initialLinks, serverNow }: { initialLinks: 
 
   return (
     <>
-      <p className="count">
-        {links.length} {links.length === 1 ? "link" : "links"} done
-      </p>
+      <section className="toolbar">
+        <p className="count">({links.length} done)</p>
+      </section>
       {links.length === 0 ? (
         <p className="empty">Nothing here yet. Links you mark Done show up here.</p>
       ) : (
-        <ul className="cards">
+        <ul className="rows">
           {links.map((link) => (
             <LinkCard
               key={link.id}
@@ -60,6 +71,7 @@ export default function DoneClient({ initialLinks, serverNow }: { initialLinks: 
           ))}
         </ul>
       )}
+      <Footer open={openCount} done={links.length} />
       <Toast toast={toast} onClose={hide} />
     </>
   );

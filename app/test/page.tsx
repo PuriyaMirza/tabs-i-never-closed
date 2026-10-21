@@ -51,7 +51,9 @@ export default function TestPage() {
 
   return (
     <main>
-      <h1>API test page</h1>
+      <header className="masthead">
+        <h1 className="app-title">API test page</h1>
+      </header>
 
       <label htmlFor="secret">Secret (LINKS_SECRET)</label>
       <input
@@ -73,7 +75,7 @@ export default function TestPage() {
         autoCorrect="off"
       />
 
-      <div className="row">
+      <div className="row-buttons">
         <button
           className="primary"
           disabled={busy || urlList.length === 0}
@@ -81,10 +83,10 @@ export default function TestPage() {
         >
           Save {urlList.length || ""} link{urlList.length === 1 ? "" : "s"}
         </button>
-        <button disabled={busy} onClick={() => call("GET", "/api/links")}>
+        <button className="text-link" disabled={busy} onClick={() => call("GET", "/api/links")}>
           Show recent
         </button>
-        <button disabled={busy} onClick={() => call("POST", "/api/links/retag")}>
+        <button className="text-link" disabled={busy} onClick={() => call("POST", "/api/links/retag")}>
           Retag untagged
         </button>
       </div>
