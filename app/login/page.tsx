@@ -17,8 +17,10 @@ export default async function LoginPage({
 
   return (
     <main>
-      <h1>Tabs I Never Closed</h1>
-      <form method="post" action="/api/login">
+      <header className="masthead">
+        <h1 className="app-title">Tabs I Never Closed</h1>
+      </header>
+      <form method="post" action="/api/login" className="login">
         <label htmlFor="password">Password</label>
         <input
           id="password"
@@ -34,7 +36,7 @@ export default async function LoginPage({
             {message}
           </p>
         )}
-        <div className="row">
+        <div className="row-buttons">
           <button type="submit" className="primary">
             Log in
           </button>

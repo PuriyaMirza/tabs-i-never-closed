@@ -1,225 +1,304 @@
-/* Plain, functional styles. Designed for phones first (375px wide). */
+/* "Almanac" layout in the "Stamp blues" palette (see the Figma mockup
+   "Option A2 — Stamp blues"). Phone first: designed at 390px wide, works at 375. */
 * { box-sizing: border-box; }
 
 :root {
-  color-scheme: light dark;
-  --bg: #ffffff;
-  --fg: #111111;
-  --muted: #666666;
-  --border: #d0d0d0;
-  --accent: #0a58ca;
+  color-scheme: light;
+  --bg: #f2f1ea;        /* cream */
+  --ink: #1a1856;       /* navy: titles, links, outlines */
+  --indigo: #33308a;    /* dots, labels, "saved …" lines */
+  --teal: #a6dcd9;      /* the intent tag */
+  --soft: rgba(51, 48, 138, 0.8);   /* indigo, softened */
+  --rule: rgba(26, 24, 86, 0.15);   /* hairlines */
+  --outline: rgba(26, 24, 86, 0.45);/* tag outlines */
+  --dashed: rgba(26, 24, 86, 0.35); /* "+ Tag" outline */
+  --danger: #b42318;
+
+  --serif: var(--font-serif), "Cormorant", Georgia, serif;
+  --sans: var(--font-sans), "Jost", -apple-system, BlinkMacSystemFont, sans-serif;
 }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #121212; --fg: #eeeeee; --muted: #9a9a9a; --border: #3a3a3a; --accent: #6ea8fe; }
-}
+
+html, body { overflow-x: hidden; } /* nothing may be wider than the screen */
 
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--fg);
-  font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  font: 300 15px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-main { max-width: 640px; margin: 0 auto; padding: 16px; }
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px max(32px, env(safe-area-inset-bottom));
+}
 
-h1 { font-size: 1.4rem; margin: 0 0 12px; }
+a { color: var(--ink); }
+.sep { margin: 0 0.75em; }
 
-label { display: block; font-weight: 600; margin: 12px 0 4px; }
+/* ---------- Header: app name, then Inbox · Done ---------- */
+.masthead { padding-top: 72px; }
+.app-title {
+  margin: 0;
+  font: italic 300 38px/0.98 var(--serif);
+  letter-spacing: 0;
+}
+.views {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+  font: 400 12px/1 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.views a {
+  /* 44pt-tall tap area without changing how the line looks */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -16px 0;
+  color: var(--soft);
+  text-decoration: none;
+}
+.views a[aria-current="page"] { color: var(--ink); }
+.views .sep { color: var(--soft); }
 
-/* 16px font on inputs stops iPhone Safari from zooming in when you tap them. */
-input, textarea, button { font: inherit; font-size: 16px; }
-input, textarea {
+/* ---------- Count, Search · Filters · Surprise me ---------- */
+.toolbar { margin: 28px 0 40px; }
+.count {
+  margin: 0 0 12px;
+  font: 300 11px/1.4 var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--indigo);
+}
+.controls {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font: 400 13px/1.4 var(--sans);
+  letter-spacing: 0.04em;
+}
+
+/* Words that act like links: only the word is underlined, never the "·". */
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;   /* comfortable tap target */
+  margin: -12px 0;    /* …without spreading the line out */
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+}
+.text-link:disabled { opacity: 0.4; cursor: default; }
+
+/* Search box: just a line to write on. 16px stops iPhone zooming in. */
+.search {
+  display: block;
   width: 100%;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--fg);
+  margin-top: 20px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--outline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 300 16px/1.4 var(--sans);
+  -webkit-appearance: none;
+  appearance: none;
 }
+.search::placeholder { color: var(--soft); }
+.search:focus { outline: none; border-bottom-color: var(--ink); }
 
-button {
-  min-height: 44px; /* comfortable tap target */
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--fg);
+.filter-panel { margin-top: 20px; }
+.filter-help { margin: 0 0 12px; font-size: 13px; color: var(--soft); }
+.filter-panel .chips + .chips { margin-top: 10px; }
+
+/* ---------- Tags ("chips") ---------- */
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 6px;
 }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-button:disabled { opacity: 0.5; }
-
-.row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.muted { color: var(--muted); font-size: 0.9rem; }
-
-pre {
-  white-space: pre-wrap;
-  word-break: break-word;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--outline);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: 400 11px/1 var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
-
-/* ---------- Phase 2: link list, filters, cards, toast ---------- */
-
-/* Extra colours. Dark-mode values come in the media query just below. */
-:root {
-  --surface: #f5f6f8;
-  --danger: #b42318;
-  --danger-bg: #fdecea;
-  --topic-bg: #e8eaee;
-  --on-accent: #ffffff;
+.chip-intent { background: var(--teal); border-color: var(--teal); }
+.chip-add { border-style: dashed; border-color: var(--dashed); color: var(--soft); cursor: pointer; }
+/* The × has a 44pt tap area that reaches past the small pill. */
+.chip-x {
+  position: relative;
+  margin: 0 -6px 0 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 400 14px/1 var(--sans);
+  cursor: pointer;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: #1d1d20;
-    --danger: #ff8a80;
-    --danger-bg: #3b1f1d;
-    --topic-bg: #2c2d31;
-    --on-accent: #0b0b0b;
-  }
+.chip-x::after,
+.chip-add::after,
+.chip-filter::after {
+  content: "";
+  position: absolute;
+  inset: -8px -4px;
 }
+.chip-x::after { inset: -15px -12px; }
 
-/* Nothing on the page should ever be wider than the screen. */
-html, body { overflow-x: hidden; }
-a { color: var(--accent); }
+/* Filter chips: "+tag" filled navy, "−tag" dashed and struck through.
+   The symbol carries the meaning; colour only helps. */
+.chip-filter { min-height: 32px; cursor: pointer; }
+.chip-filter-intent { border-color: var(--teal); }
+.chip-filter.is-include { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.chip-filter.is-exclude { border-style: dashed; color: var(--soft); text-decoration: line-through; }
 
-button.primary { color: var(--on-accent); }
+/* ---------- The list ---------- */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  min-width: 0;
+}
+.row-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--indigo);
+}
+.row-body { flex: 1; min-width: 0; }
+.row-title {
+  display: block;
+  font: 300 20px/1.12 var(--serif);
+  color: var(--ink);
+  text-decoration: none;
+  overflow-wrap: anywhere; /* long titles and URLs wrap instead of widening the page */
+}
+.row-meta {
+  margin: 4px 0 0;
+  font: 300 13px/1.5 var(--sans);
+  color: var(--soft);
+  overflow-wrap: anywhere;
+}
+.row-meta .sep { margin: 0 0.6em; }
 
-.error { color: var(--danger); margin: 8px 0 0; font-weight: 600; }
-
-/* Top bar: title + Inbox/Done switch */
-.topbar { margin-bottom: 12px; }
-.nav { display: flex; gap: 8px; }
-.nav a {
-  flex: 1;
+/* The triangle: a 44pt button, centred on the first line of the title. */
+.row-toggle {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  text-decoration: none;
-  color: var(--fg);
-}
-.nav a[aria-current="page"] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-  font-weight: 700;
-}
-
-/* Search, filters and the "N links / Surprise me" row */
-.toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-input[type="search"] { min-height: 44px; }
-
-.filters { border: 1px solid var(--border); border-radius: 8px; }
-.filters summary {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 12px;
-  cursor: pointer;
-  font-weight: 600;
-}
-.filters[open] summary { border-bottom: 1px solid var(--border); }
-.filter-help { margin: 8px 12px 0; }
-/* Chips wrap onto several lines; if there are very many, the panel scrolls. */
-.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
-.filters[open] { max-height: 60vh; overflow-y: auto; }
-
-.chip {
-  min-height: 44px;
-  padding: 4px 14px;
-  border-radius: 22px;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-/* Intent chips look different from topic chips: squarer, bold. */
-.chip-intent { border-radius: 8px; font-weight: 700; }
-/* "+tag": solid. "−tag": dashed, struck through. The symbol carries the meaning; colour only helps. */
-.chip-include { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
-.chip-exclude {
-  background: var(--danger-bg);
-  border: 2px dashed var(--danger);
-  color: var(--danger);
-  text-decoration: line-through;
-  font-weight: 700;
-}
-
-.summary-row { display: flex; align-items: center; gap: 8px; }
-.count { margin: 0; font-weight: 700; flex: 1; min-width: 0; }
-.count .muted { font-weight: 400; }
-
-.empty { text-align: center; color: var(--muted); padding: 32px 8px; }
-
-/* Cards */
-.cards { list-style: none; margin: 0; padding: 0 0 96px; display: flex; flex-direction: column; gap: 12px; }
-.card {
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  min-width: 0;
-}
-.card-title {
-  display: block;
-  font-weight: 700;
-  line-height: 1.3;
-  /* Long titles and URLs wrap instead of pushing the page wider. */
-  overflow-wrap: anywhere;
-}
-.card-meta { margin: 4px 0 8px; overflow-wrap: anywhere; }
-
-.tags { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 12px 8px; align-items: center; }
-.tag {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 10px;
-  font-size: 0.9rem;
-  overflow-wrap: anywhere;
-}
-/* Topic tags: soft rounded pills. Intent tag: accent outline, squarer, bold. */
-.tag-topic { background: var(--topic-bg); border-radius: 16px; }
-.tag-intent {
-  border: 2px solid var(--accent);
-  color: var(--accent);
-  border-radius: 6px;
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.8rem;
-  letter-spacing: 0.03em;
-}
-/* The × is a 44x44 tap area that sticks out above and below the small pill. */
-.tag-x {
-  min-width: 44px;
-  min-height: 44px;
-  margin: -6px -10px -6px 0;
+  width: 44px;
+  height: 44px;
+  margin: -11px -10px 0 0;
   padding: 0;
   border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 20px;
-  line-height: 1;
+  background: none;
+  color: var(--soft);
+  cursor: pointer;
+}
+.row.is-open .row-toggle { color: var(--indigo); }
+
+.row-details {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 16px;
+}
+.actions {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font: 400 13px/1.4 var(--sans);
+  letter-spacing: 0.04em;
 }
 
-.editor { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-select {
-  min-height: 44px;
-  padding: 0 10px;
+/* "Change intent": the phone's own picker opens from an invisible <select>
+   laid over the words. */
+.select-link {
+  position: relative;
+  display: inline-flex;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+.select-link select {
+  position: absolute;
+  inset: -12px 0;
+  width: 100%;
+  opacity: 0;
   font-size: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--fg);
+  cursor: pointer;
 }
-.add-tag { display: flex; gap: 8px; flex: 1 1 180px; min-width: 0; }
-.add-tag input { min-height: 44px; min-width: 0; flex: 1; }
 
-.card-actions { display: flex; justify-content: flex-end; }
+.add-tag { display: flex; align-items: center; gap: 16px; }
+.add-tag input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--outline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 300 16px/1.4 var(--sans);
+}
+.add-tag input:focus { outline: none; border-bottom-color: var(--ink); }
 
-/* The Undo toast: fixed to the bottom of the screen, above the iPhone home bar. */
+.empty { padding: 24px 0; color: var(--soft); font-size: 15px; }
+.error { margin: 0; color: var(--danger); font-size: 13px; font-weight: 400; }
+
+/* ---------- Footer ---------- */
+.foot {
+  margin-top: 40px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+  font: 300 12px/1.4 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--soft);
+}
+
+/* ---------- Undo toast: fixed above the iPhone home bar ---------- */
 .toast {
   position: fixed;
   left: 16px;
@@ -231,28 +310,86 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 4px 4px 4px 16px;
-  border-radius: 12px;
-  background: var(--fg);
+  padding: 4px 8px 4px 18px;
+  border-radius: 999px;
+  background: var(--ink);
   color: var(--bg);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  font: 400 13px/1.4 var(--sans);
+  letter-spacing: 0.04em;
   z-index: 10;
 }
 .toast-action {
+  min-height: 44px;
+  padding: 0 10px;
   border: 0;
-  background: transparent;
+  background: none;
   color: inherit;
-  font-weight: 700;
+  font: inherit;
   text-decoration: underline;
-  min-width: 64px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 /* Slim bar shown at the top while the phone is offline (see PwaClient.tsx). */
 .offline-banner {
   position: sticky;
   top: 0;
   z-index: 100;
   padding: 6px 16px;
-  background: var(--fg);
+  background: var(--ink);
   color: var(--bg);
-  font-size: 0.85rem;
+  font: 400 12px/1.4 var(--sans);
+  letter-spacing: 0.04em;
   text-align: center;
 }
+
+/* ---------- Forms: login page and the /test page ---------- */
+form label, main > label {
+  display: block;
+  margin: 20px 0 6px;
+  font: 400 11px/1.4 var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--indigo);
+}
+/* 16px text on inputs stops iPhone Safari from zooming in when you tap them. */
+input[type="password"],
+textarea {
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--outline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 300 16px/1.4 var(--sans);
+}
+textarea { border: 1px solid var(--outline); padding: 8px; }
+input:focus, textarea:focus { outline: none; border-color: var(--ink); }
+
+button.primary {
+  min-height: 44px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font: 400 12px/1 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+button.primary:disabled { opacity: 0.4; }
+
+.row-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-top: 24px; }
+.muted { color: var(--soft); font-size: 13px; }
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 12px;
+  border: 1px solid var(--rule);
+  font: 400 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.login { margin-top: 28px; }

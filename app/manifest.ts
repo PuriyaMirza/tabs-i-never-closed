@@ -12,11 +12,9 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     // "standalone" = opens full-screen, without Safari's address bar.
     display: "standalone",
-    // Match --bg in app/globals.css (light mode). A manifest can only hold
-    // one colour; the dark-mode colour is set in the page's <meta> tags
-    // (see `viewport` in app/layout.tsx).
-    background_color: "#ffffff",
-    theme_color: "#ffffff",
+    // Match --bg (cream) in app/globals.css.
+    background_color: "#f2f1ea",
+    theme_color: "#f2f1ea",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

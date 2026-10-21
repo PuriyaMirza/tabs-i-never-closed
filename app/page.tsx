@@ -3,7 +3,7 @@
 // scripts afterwards.) That way the saved copy of the page that the phone
 // keeps for offline reading already contains the links.
 import { requireLogin } from "@/lib/page-auth.ts";
-import { getActiveLinks, getAllTopicTags } from "@/lib/links.ts";
+import { getActiveLinks, getAllTopicTags, getCounts } from "@/lib/links.ts";
 import Nav from "./_components/Nav.tsx";
 import InboxClient from "./_components/InboxClient.tsx";
 
@@ -12,12 +12,17 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   await requireLogin();
-  const [links, allTags] = await Promise.all([getActiveLinks(), getAllTopicTags()]);
+  const [links, allTags, counts] = await Promise.all([getActiveLinks(), getAllTopicTags(), getCounts()]);
 
   return (
     <main>
       <Nav current="inbox" />
-      <InboxClient initialLinks={links} allTags={allTags} serverNow={new Date().toISOString()} />
+      <InboxClient
+        initialLinks={links}
+        initialDoneCount={counts.done}
+        allTags={allTags}
+        serverNow={new Date().toISOString()}
+      />
     </main>
   );
 }
