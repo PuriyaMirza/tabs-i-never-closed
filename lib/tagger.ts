@@ -4,6 +4,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { INTENTS, type Intent } from "./types.ts";
 import { cleanTags } from "./tags.ts";
+import { cleanSummary } from "./summary.ts";
 import type { PageInfo } from "./title.ts";
 
 // cleanTags lives in tags.ts so the browser can use it without loading the
@@ -41,6 +42,8 @@ Return:
     an account page) and nothing more.
   Never invent specifics the inputs don't support. Don't repeat the title word for word, and don't start with
   "This page", "This article" or "A link".
+  Never mention what information you had or lacked (no "only the title and URL were available", "details are
+  inferred"). If you know little, write one shorter sentence instead.
 
 Sometimes you also get examples of how this person tagged links themselves. Their choices win over the guidance above:
 match their intents and topic tags for similar links (same website, same kind of page), and avoid repeating guesses they corrected.`;
@@ -85,7 +88,7 @@ export async function tagLink(
   return {
     topic_tags: cleanTags(topic_tags, existingTags),
     intent_tag,
-    // Keep it to a couple of lines even if Claude runs long.
-    description: description.replace(/\s+/g, " ").trim().slice(0, 320),
+    // Keep it to a couple of lines, without "I only had the URL" filler.
+    description: cleanSummary(description),
   };
 }
