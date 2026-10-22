@@ -4,10 +4,11 @@
 //     "topic_tags": ["travel", "food"],
 //     "intent_tag": "read" | "watch" | "buy" | "try" | "reference" }
 // Replies { "link": {...} } with the updated link, or 404 if there is no such link.
+// DELETE /api/links/123 → delete the link for good. Replies { "deleted": 123 }.
 // Needs the login cookie or the x-links-secret header.
 import { NextResponse } from "next/server";
 import { isAuthorized } from "@/lib/auth.ts";
-import { getLink, updateLink } from "@/lib/links.ts";
+import { deleteLink, getLink, updateLink } from "@/lib/links.ts";
 import { parseId, parsePatch } from "@/lib/patch.ts";
 
 // In Next.js 16 the route's params arrive as a Promise, so we await them.
@@ -40,4 +41,11 @@ export async function PATCH(req: Request, { params }: Context) {
 
   const link = await updateLink(id, parsed.patch);
   return link ? NextResponse.json({ link }) : notFound();
+}
+
+export async function DELETE(req: Request, { params }: Context) {
+  if (!(await isAuthorized(req))) return unauthorized();
+  const id = parseId((await params).id);
+  if (id === null) return notFound();
+  return (await deleteLink(id)) ? NextResponse.json({ deleted: id }) : notFound();
 }

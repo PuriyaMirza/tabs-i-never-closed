@@ -102,6 +102,8 @@ a { color: var(--ink); }
   cursor: pointer;
 }
 .text-link:disabled { opacity: 0.4; cursor: default; }
+.text-link.danger { color: var(--danger); }
+.confirm-text { margin-right: 0.9em; }
 
 /* Search box: just a line to write on. 16px stops iPhone zooming in. */
 .search {
@@ -209,6 +211,13 @@ a { color: var(--ink); }
   color: var(--ink);
   text-decoration: none;
   overflow-wrap: anywhere; /* long titles and URLs wrap instead of widening the page */
+}
+/* The one-sentence description under the title. */
+.row-desc {
+  margin: 4px 0 0;
+  font: 300 14px/1.45 var(--sans);
+  color: var(--ink);
+  overflow-wrap: anywhere;
 }
 .row-meta {
   margin: 4px 0 0;

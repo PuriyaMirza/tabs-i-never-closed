@@ -12,6 +12,8 @@ create table if not exists links (
   topic_tags  text[] not null default '{}',
   -- One of read/watch/buy/try/reference. NULL = not tagged yet.
   intent_tag  text check (intent_tag in ('read', 'watch', 'buy', 'try', 'reference')),
+  -- One short sentence about the page, written by Claude.
+  description text,
   -- What Claude first suggested (kept so the app can learn from your edits).
   ai_topic_tags text[],
   ai_intent_tag text,

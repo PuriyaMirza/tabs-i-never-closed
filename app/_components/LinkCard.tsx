@@ -1,8 +1,9 @@
 "use client";
 // One link in the list. Closed, it shows only the title and "site · saved …".
+// Closed, it shows the title, a one-line description and "site · saved …".
 // Tapping the triangle opens it to show the tags and actions:
-//   inbox ("active"): edit tags, change intent, mark done
-//   Done view: restore
+//   inbox ("active"): edit tags, change intent, mark done, delete
+//   Done view: restore, delete
 import { useId, useState } from "react";
 import { INTENTS, type Intent, type Link } from "@/lib/types.ts";
 import { cleanTags, MAX_TOPIC_TAGS } from "@/lib/tags.ts";
@@ -22,10 +23,13 @@ type Props = {
   onChange: (link: Link) => void;
   /** Mark done (inbox) or Restore (Done view). */
   onMove: (link: Link) => void;
+  /** Delete for good (asks "Are you sure?" first, inside the row). */
+  onDelete: (link: Link) => void;
 };
 
-export default function LinkCard({ link, mode, now, knownTags, suggestionsId, onChange, onMove }: Props) {
+export default function LinkCard({ link, mode, now, knownTags, suggestionsId, onChange, onMove, onDelete }: Props) {
   const [open, setOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +83,7 @@ export default function LinkCard({ link, mode, now, knownTags, suggestionsId, on
         <a className="row-title" href={link.url} target="_blank" rel="noopener noreferrer">
           {link.title}
         </a>
+        {link.description && <p className="row-desc">{link.description}</p>}
         <p className="row-meta">
           {link.domain}
           <span className="sep" aria-hidden="true">·</span>
@@ -148,6 +153,18 @@ export default function LinkCard({ link, mode, now, knownTags, suggestionsId, on
               </form>
             )}
 
+            {confirmingDelete ? (
+              <p className="actions" role="group" aria-label="Confirm delete">
+                <span className="confirm-text">Delete for good?</span>
+                <button type="button" className="text-link danger" disabled={busy} onClick={() => onDelete(link)}>
+                  Delete
+                </button>
+                <span className="sep" aria-hidden="true">·</span>
+                <button type="button" className="text-link" onClick={() => setConfirmingDelete(false)}>
+                  Cancel
+                </button>
+              </p>
+            ) : (
             <p className="actions">
               {editable ? (
                 <>
@@ -194,7 +211,12 @@ export default function LinkCard({ link, mode, now, knownTags, suggestionsId, on
                   Restore
                 </button>
               )}
+              <span className="sep" aria-hidden="true">·</span>
+              <button type="button" className="text-link" disabled={busy} onClick={() => setConfirmingDelete(true)}>
+                Delete
+              </button>
             </p>
+            )}
 
             {error && (
               <p role="alert" className="error">
@@ -214,6 +236,7 @@ export default function LinkCard({ link, mode, now, knownTags, suggestionsId, on
         onClick={() => {
           setOpen((o) => !o);
           setAdding(false);
+          setConfirmingDelete(false);
         }}
       >
         <Triangle open={open} />
