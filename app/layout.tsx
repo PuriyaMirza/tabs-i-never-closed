@@ -6,7 +6,7 @@ import PwaClient from "@/app/components/PwaClient.tsx";
 // The two typefaces from the "Almanac" design: Cormorant for titles, Jost for
 // everything else. next/font downloads them at build time and serves them from
 // our own site, so they also work offline.
-const serif = Cormorant({ subsets: ["latin"], weight: "300", style: ["normal", "italic"], variable: "--font-serif" });
+const serif = Cormorant({ subsets: ["latin"], weight: ["300", "500"], style: ["normal", "italic"], variable: "--font-serif" });
 const sans = Jost({ subsets: ["latin"], weight: ["300", "400"], variable: "--font-sans" });
 
 export const metadata: Metadata = {

@@ -205,7 +205,7 @@ a { color: var(--ink); }
 .row-body { flex: 1; min-width: 0; }
 .row-title {
   display: block;
-  font: 300 20px/1.12 var(--serif);
+  font: 500 20px/1.12 var(--serif); /* Medium: heavier than the light app title */
   color: var(--ink);
   text-decoration: none;
   overflow-wrap: anywhere; /* long titles and URLs wrap instead of widening the page */
