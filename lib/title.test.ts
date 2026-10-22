@@ -1,7 +1,7 @@
 // Run with: npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractDescription, extractTitle, fetchTitle, fetchYouTubeTitle, isUsefulTitle } from "./title.ts";
+import { extractDescription, extractPageText, extractTitle, fetchPageInfo, fetchTitle, fetchYouTubeTitle, isUsefulTitle } from "./title.ts";
 
 test("extractTitle prefers og:title and decodes entities", () => {
   assert.equal(
@@ -48,4 +48,34 @@ test("extractDescription prefers og:description, then meta description", () => {
   );
   assert.equal(extractDescription('<meta content="Reversed  order" name="description">'), "Reversed order");
   assert.equal(extractDescription("<title>No description</title>"), null);
+});
+
+test("extractPageText keeps the article text and drops menus, scripts and footers", () => {
+  const words = "Sourdough needs a warm spot around 24 degrees to rise well and develop flavour over a long slow ferment.";
+  const html = `<html><head><title>T</title><script>var x = 1;</script></head><body>
+    <nav>Home About Shop Login</nav><header>Site header text</header>
+    <article><h1>Sourdough basics</h1><p>${words}</p><script>track()</script></article>
+    <footer>© 2026 footer text</footer></body></html>`;
+  const text = extractPageText(html) ?? "";
+  assert.match(text, /^Sourdough basics Sourdough needs a warm spot/);
+  assert.doesNotMatch(text, /Home About|header text|footer|track\(\)|var x/);
+});
+
+test("extractPageText copes with a page cut off mid-way, and ignores near-empty pages", () => {
+  const cut = "<body><main><p>" + "word ".repeat(40) + "</p><script>never closed";
+  assert.equal(extractPageText(cut), ("word ".repeat(40)).trim());
+  assert.equal(extractPageText("<body><button>Sign in</button></body>"), null);
+  assert.equal((extractPageText("<body><p>" + "long ".repeat(2000) + "</p></body>") ?? "").length, 4000);
+});
+
+test("isUsefulTitle rejects bare search-page titles", () => {
+  assert.equal(isUsefulTitle("Google Search", "https://www.google.com/search?q=x"), false);
+  assert.equal(isUsefulTitle("Google Search tips for beginners", "https://blog.example.com/a"), true);
+});
+
+test("fetchPageInfo uses the query for searches without fetching", async (t) => {
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => new Response("should not be called"));
+  const info = await fetchPageInfo("https://www.google.com/search?q=stove+knob+replacement&hl=en-US");
+  assert.deepEqual(info, { title: "stove knob replacement", description: null, text: null, searchQuery: "stove knob replacement" });
+  assert.equal(fetchMock.mock.callCount(), 0);
 });

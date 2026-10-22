@@ -1,25 +1,41 @@
-// Fetches a page's <title> (and its short meta description, if it has one).
+// Fetches a page's <title>, its short meta description, and an excerpt of
+// its text (so Claude can summarize what's actually on the page).
 // Never throws: on any problem it returns a readable title built from the URL
 // instead, so saving a link never fails because a site was slow or blocked us.
-import { domainOf, titleFromUrl } from "./url.ts";
+import { domainOf, searchQueryOf, titleFromUrl } from "./url.ts";
 
 const TIMEOUT_MS = 5000;
-// Titles live near the top of the HTML; no need to download whole pages.
-const MAX_BYTES = 512 * 1024;
+// Enough to reach the start of the article on most pages, without
+// downloading huge ones.
+const MAX_BYTES = 1024 * 1024;
+// How much page text Claude reads (about 1,000 tokens).
+const MAX_TEXT_CHARS = 4000;
 
-export type PageInfo = { title: string; description: string | null };
+export type PageInfo = {
+  title: string;
+  /** The page's own meta description, if it has one. */
+  description: string | null;
+  /** The start of the page's readable text, if we could fetch it. */
+  text: string | null;
+  /** For web searches: what was searched for. */
+  searchQuery: string | null;
+};
 
 export async function fetchTitle(url: string): Promise<string> {
   return (await fetchPageInfo(url)).title;
 }
 
 export async function fetchPageInfo(url: string): Promise<PageInfo> {
-  const fallback = (): PageInfo => ({ title: titleFromUrl(url), description: null });
+  const fallback = (): PageInfo => ({ title: titleFromUrl(url), description: null, text: null, searchQuery: null });
+
+  // Searches: Google and friends block servers, and the query says it all.
+  const searchQuery = searchQueryOf(url);
+  if (searchQuery) return { title: searchQuery, description: null, text: null, searchQuery };
 
   // YouTube shows servers a generic page titled just "YouTube", so ask its
   // official oEmbed service for the real video title instead.
   const videoTitle = await fetchYouTubeTitle(url);
-  if (videoTitle) return { title: videoTitle, description: null };
+  if (videoTitle) return { title: videoTitle, description: null, text: null, searchQuery: null };
 
   try {
     const res = await fetch(url, {
@@ -41,6 +57,8 @@ export async function fetchPageInfo(url: string): Promise<PageInfo> {
     return {
       title: title && isUsefulTitle(title, url) ? title : titleFromUrl(url),
       description: extractDescription(html),
+      text: extractPageText(html),
+      searchQuery: null,
     };
   } catch {
     // Timeout, DNS failure, TLS error, … → fall back quietly.
@@ -48,22 +66,53 @@ export async function fetchPageInfo(url: string): Promise<PageInfo> {
   }
 }
 
-/** Reads at most `maxBytes` of a response body as text, then stops. */
+/**
+ * Reads at most `maxBytes` of a response body as text. If the connection is
+ * cut off (e.g. the 5 second timeout), keeps whatever arrived so far.
+ */
 async function readStart(body: ReadableStream<Uint8Array>, maxBytes: number): Promise<string> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let text = "";
   let bytes = 0;
-  while (bytes < maxBytes) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    bytes += value.byteLength;
-    text += decoder.decode(value, { stream: true });
-    // Stop early once we've seen the end of <head>.
-    if (/<\/head>/i.test(text)) break;
+  try {
+    while (bytes < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      text += decoder.decode(value, { stream: true });
+    }
+  } catch {
+    // Timed out or dropped mid-page: the part we have is still useful.
   }
   reader.cancel().catch(() => {});
   return text;
+}
+
+/**
+ * The readable text of a page: the <article> (or <main>, or <body>) with
+ * scripts, styles, menus, headers and footers removed and tags stripped.
+ * Returns the first few thousand characters, or null if there's nothing useful.
+ */
+export function extractPageText(html: string): string | null {
+  // (A page cut off at the size limit may be missing its closing tags, so
+  // "up to the closing tag, or the end" is used throughout.)
+  const pick = (tag: string) => html.match(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)(?:</${tag}>|$)`, "i"))?.[1];
+  let part = pick("article") ?? pick("main") ?? pick("body") ?? html;
+  // Drop whole blocks whose text is never the content.
+  for (const tag of ["script", "style", "noscript", "svg", "nav", "header", "footer", "aside", "form", "template"]) {
+    part = part.replace(new RegExp(`<${tag}\\b[\\s\\S]*?(?:</${tag}>|$)`, "gi"), " ");
+  }
+  const text = decodeEntities(
+    part
+      .replace(/<!--[\s\S]*?-->/g, " ")
+      .replace(/<(br|\/p|\/div|\/li|\/h[1-6])\b[^>]*>/gi, " ")
+      .replace(/<[^>]+>/g, " "),
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+  // A few words is just leftover buttons or a login prompt, not content.
+  return text.split(" ").length >= 15 ? text.slice(0, MAX_TEXT_CHARS) : null;
 }
 
 /** The page's own summary: og:description, else <meta name="description">. */
@@ -115,6 +164,8 @@ export function isUsefulTitle(title: string, url: string): boolean {
   if (/^(just a moment|attention required|access denied|403 forbidden|robot check|are you a robot)/i.test(title)) {
     return false;
   }
+  // Search pages titled just "Google Search" say nothing about the search.
+  if (/^(google|bing|duckduckgo|yahoo) search$/i.test(title.trim())) return false;
   const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const host = domainOf(url); // "youtube.com"
   const siteName = host.split(".").slice(-2)[0]; // "youtube"
