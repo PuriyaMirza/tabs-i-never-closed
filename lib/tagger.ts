@@ -30,11 +30,16 @@ Return:
   Tags are lowercase, singular ("recipe" not "recipes"), 1–3 words, no "#".
 - intent_tag: exactly one of:
   read (articles, essays, threads), watch (videos, talks, films), buy (products, shopping),
-  try (recipes, tools, apps, places to visit, things to do), reference (docs, guides, cheat sheets to look things up in later).`;
+  try (recipes, tools, apps, places to visit, things to do), reference (docs, guides, cheat sheets to look things up in later).
+
+Sometimes you also get examples of how this person tagged links themselves. Their choices win over the guidance above:
+match their intents and topic tags for similar links (same website, same kind of page), and avoid repeating guesses they corrected.`;
 
 export async function tagLink(
   link: { title: string; url: string; domain: string },
   existingTags: string[],
+  /** Past edits from formatExamples() in learning.ts; "" if there are none yet. */
+  examples = "",
 ): Promise<Tags> {
   const response = await client.messages.parse({
     model: "claude-haiku-5-5",
@@ -48,6 +53,8 @@ export async function tagLink(
         content: [
           `Existing topic tags: ${existingTags.length ? existingTags.join(", ") : "(none yet)"}`,
           "",
+          ...(examples ? [examples, ""] : []),
+          "Tag this link:",
           `Title: ${link.title}`,
           `URL: ${link.url}`,
           `Domain: ${link.domain}`,
