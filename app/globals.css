@@ -212,12 +212,24 @@ a { color: var(--ink); }
   text-decoration: none;
   overflow-wrap: anywhere; /* long titles and URLs wrap instead of widening the page */
 }
-/* The one-sentence description under the title. */
+/* The short AI summary under the title: up to 3 lines while the row is
+   closed, in full once it's opened. */
 .row-desc {
   margin: 4px 0 0;
   font: 300 14px/1.45 var(--sans);
   color: var(--ink);
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+.row.is-open .row-desc {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: none;
+  overflow: visible;
 }
 .row-meta {
   margin: 4px 0 0;

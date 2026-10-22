@@ -52,6 +52,29 @@ export function domainOf(url: string): string {
   return new URL(url).hostname.replace(/^www\./, "");
 }
 
+/**
+ * If the link is a web search (Google, Bing, DuckDuckGo, YouTube search),
+ * returns what was searched for; otherwise null.
+ * "https://www.google.com/search?q=stove+knob+replacement&…" → "stove knob replacement"
+ */
+export function searchQueryOf(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const host = u.hostname.replace(/^www\./, "");
+  const path = u.pathname.replace(/\/+$/, "");
+  let q: string | null = null;
+  if (/^google\.[a-z.]+$/.test(host) && path === "/search") q = u.searchParams.get("q");
+  else if (host === "bing.com" && path === "/search") q = u.searchParams.get("q");
+  else if (host === "duckduckgo.com") q = u.searchParams.get("q");
+  else if ((host === "youtube.com" || host === "m.youtube.com") && path === "/results") q = u.searchParams.get("search_query");
+  const clean = q?.replace(/\s+/g, " ").trim();
+  return clean ? clean.slice(0, 200) : null;
+}
+
 // Path parts that say nothing about the page ("youtube.com/watch?v=…").
 const GENERIC_SEGMENTS = new Set([
   "index", "watch", "video", "videos", "status", "p", "post", "posts", "item",
@@ -64,6 +87,10 @@ const GENERIC_SEGMENTS = new Set([
  * Falls back to the domain when the path has nothing useful.
  */
 export function titleFromUrl(url: string): string {
+  // A search is best described by what was searched for.
+  const query = searchQueryOf(url);
+  if (query) return query;
+
   const { pathname } = new URL(url);
   const segments = pathname.split("/").filter(Boolean);
 

@@ -27,16 +27,17 @@ export async function enrichLinks(
 
   await runWithLimit(targets, 5, async (link) => {
     try {
-      let pageDescription: string | null = null;
-      if (opts.fetchTitles) {
-        const page = await fetchPageInfo(link.url); // never throws
+      // Read the page so Claude can summarize what's actually on it.
+      const page = await fetchPageInfo(link.url); // never throws
+      // New links get the real page title. Searches always show their query
+      // (instead of "Google Search").
+      if (opts.fetchTitles || page.searchQuery) {
         link.title = page.title;
-        pageDescription = page.description;
         await sql`update links set title = ${link.title} where id = ${link.id}`;
       }
       // Show Claude how you tagged similar links (learning from your edits).
       const examples = formatExamples(await getTaggingExamples(link.domain, link.id));
-      const result = await tagLink(link, tags, examples, pageDescription);
+      const result = await tagLink(link, tags, examples, page);
       // Also remember Claude's guess, so later edits can be compared with it.
       await sql`
         update links
@@ -57,9 +58,10 @@ export async function enrichLinks(
 }
 
 /**
- * Writes the one-sentence description for links that don't have one yet
- * (e.g. saved before descriptions existed). Only the description is saved;
- * your tags are never touched. Runs in the background when the inbox opens.
+ * Writes the short summary for links that don't have one yet (e.g. saved
+ * before summaries existed). Only the summary is saved, plus the query as the
+ * title for searches; your tags are never touched. Runs in the background
+ * when the inbox opens.
  */
 export async function describeMissing(limit: number): Promise<number> {
   const rows = await sql`
@@ -72,8 +74,12 @@ export async function describeMissing(limit: number): Promise<number> {
   await runWithLimit(rows as Target[], 4, async (link) => {
     try {
       const page = await fetchPageInfo(link.url); // never throws
-      const { description } = await tagLink(link, tags, "", page.description);
-      await sql`update links set description = ${description} where id = ${link.id} and description is null`;
+      const { description } = await tagLink(link, tags, "", page);
+      await sql`
+        update links
+        set description = ${description},
+            title = case when ${page.searchQuery !== null}::boolean then ${page.title} else title end
+        where id = ${link.id} and description is null`;
       written++;
     } catch (err) {
       console.error(`Describing link ${link.id} failed:`, err instanceof Error ? err.message : err);

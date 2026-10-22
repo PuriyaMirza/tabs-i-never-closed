@@ -1,7 +1,7 @@
 // Run with: npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeUrl, domainOf, titleFromUrl } from "./url.ts";
+import { normalizeUrl, domainOf, searchQueryOf, titleFromUrl } from "./url.ts";
 
 test("strips tracking params and trailing slashes", () => {
   assert.equal(
@@ -30,4 +30,22 @@ test("domain and fallback title", () => {
 test("fallback title skips generic path parts", () => {
   assert.equal(titleFromUrl("https://www.youtube.com/watch?v=abc"), "youtube.com");
   assert.equal(titleFromUrl("https://www.amazon.com/Cast-Iron-Skillet/dp/B00006JSUA"), "Cast Iron Skillet");
+});
+
+test("searchQueryOf finds the query in web searches only", () => {
+  assert.equal(
+    searchQueryOf("https://www.google.com/search?q=stove+knob+replacement&sca_esv=626b&hl=en-US"),
+    "stove knob replacement",
+  );
+  assert.equal(searchQueryOf("https://google.co.uk/search?q=Baloch%20resistance"), "Baloch resistance");
+  assert.equal(searchQueryOf("https://www.bing.com/search?q=cable+cover"), "cable cover");
+  assert.equal(searchQueryOf("https://duckduckgo.com/?q=sourdough+starter"), "sourdough starter");
+  assert.equal(searchQueryOf("https://www.youtube.com/results?search_query=knife+skills"), "knife skills");
+  assert.equal(searchQueryOf("https://www.google.com/maps?q=coffee"), null);
+  assert.equal(searchQueryOf("https://example.com/search?q=x"), null);
+  assert.equal(searchQueryOf("https://www.google.com/search?tbm=nws"), null);
+});
+
+test("fallback title for a search is the query", () => {
+  assert.equal(titleFromUrl("https://www.google.com/search?q=cable+organizing+covers&rlz=1C"), "cable organizing covers");
 });

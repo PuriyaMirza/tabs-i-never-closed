@@ -18,10 +18,10 @@ export default async function Home() {
   await requireLogin();
   const [links, allTags, counts] = await Promise.all([getActiveLinks(), getAllTopicTags(), getCounts()]);
 
-  // Links saved before descriptions existed get one written in the background,
+  // Links without a summary yet get one written in the background,
   // a few per visit; they show up the next time the inbox loads.
   if (links.some((l) => l.description === null)) {
-    after(() => describeMissing(8));
+    after(() => describeMissing(12));
   }
 
   return (

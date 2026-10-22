@@ -1,6 +1,6 @@
 "use client";
-// One link in the list. Closed, it shows only the title and "site · saved …".
-// Closed, it shows the title, a one-line description and "site · saved …".
+// One link in the list. Closed, it shows the title, the AI summary (up to 3
+// lines) and "site · saved …".
 // Tapping the triangle opens it to show the tags and actions:
 //   inbox ("active"): edit tags, change intent, mark done, delete
 //   Done view: restore, delete

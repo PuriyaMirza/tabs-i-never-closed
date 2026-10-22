@@ -4,6 +4,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { INTENTS, type Intent } from "./types.ts";
 import { cleanTags } from "./tags.ts";
+import type { PageInfo } from "./title.ts";
 
 // cleanTags lives in tags.ts so the browser can use it without loading the
 // Claude SDK. It's re-exported here so existing imports keep working.
@@ -32,9 +33,14 @@ Return:
 - intent_tag: exactly one of:
   read (articles, essays, threads), watch (videos, talks, films), buy (products, shopping),
   try (recipes, tools, apps, places to visit, things to do), reference (docs, guides, cheat sheets to look things up in later).
-- description: one plain sentence, at most 15 words, saying what the page is or offers, so the person
-  remembers why they saved it. Don't repeat the title word for word, and don't start with "This page" or "An article".
-  Only state what the title, URL and page description support; never invent specifics. If unsure, describe the kind of page.
+- description: a summary of 1 or 2 short sentences (at most 40 words) of what's actually in the link, so the person
+  remembers what it is without opening it.
+  - If you get page text, summarize what the page says or offers: the main point, key facts, or what's for sale.
+  - If it's a web search, say what was searched for and the likely goal (e.g. finding a part, comparing products, checking news).
+  - If you only have the title and URL, say what kind of page it is, using details the URL shows (e.g. an order or return page,
+    an account page) and nothing more.
+  Never invent specifics the inputs don't support. Don't repeat the title word for word, and don't start with
+  "This page", "This article" or "A link".
 
 Sometimes you also get examples of how this person tagged links themselves. Their choices win over the guidance above:
 match their intents and topic tags for similar links (same website, same kind of page), and avoid repeating guesses they corrected.`;
@@ -44,8 +50,8 @@ export async function tagLink(
   existingTags: string[],
   /** Past edits from formatExamples() in learning.ts; "" if there are none yet. */
   examples = "",
-  /** The page's own meta description, if we could fetch it. */
-  pageDescription: string | null = null,
+  /** What we could read from the page (fetchPageInfo in title.ts); null if nothing. */
+  page: Pick<PageInfo, "description" | "text" | "searchQuery"> | null = null,
 ): Promise<Tags> {
   const response = await client.messages.parse({
     model: "claude-haiku-5-5",
@@ -64,7 +70,9 @@ export async function tagLink(
           `Title: ${link.title}`,
           `URL: ${link.url}`,
           `Domain: ${link.domain}`,
-          ...(pageDescription ? [`Page description: ${pageDescription}`] : []),
+          ...(page?.searchQuery ? [`This is a web search for: ${page.searchQuery}`] : []),
+          ...(page?.description ? [`Page description: ${page.description}`] : []),
+          ...(page?.text ? ["Page text (excerpt):", page.text] : []),
         ].join("\n"),
       },
     ],
@@ -77,7 +85,7 @@ export async function tagLink(
   return {
     topic_tags: cleanTags(topic_tags, existingTags),
     intent_tag,
-    // Keep it one short line even if Claude runs long.
-    description: description.replace(/\s+/g, " ").trim().slice(0, 200),
+    // Keep it to a couple of lines even if Claude runs long.
+    description: description.replace(/\s+/g, " ").trim().slice(0, 320),
   };
 }
