@@ -36,6 +36,11 @@ export async function patchLink(id: number, changes: LinkChanges): Promise<Link>
   return data.link as Link;
 }
 
+/** Deletes a link for good. */
+export async function deleteLink(id: number): Promise<void> {
+  await call(`/api/links/${id}`, { method: "DELETE" });
+}
+
 /** Asks Claude to tag one link, then loads the result. */
 export async function tagWithAi(id: number): Promise<Link> {
   const result = await call("/api/links/retag", { method: "POST", body: JSON.stringify({ ids: [id] }) });

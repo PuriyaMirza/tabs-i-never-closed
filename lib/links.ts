@@ -16,6 +16,7 @@ function toLink(row: Record<string, unknown>): Link {
     domain: row.domain as string,
     topic_tags: row.topic_tags as string[],
     intent_tag: row.intent_tag as Link["intent_tag"],
+    description: (row.description as string | null) ?? null,
     created_at: iso(row.created_at),
     done_at: row.done_at ? iso(row.done_at) : null,
   };
@@ -24,7 +25,7 @@ function toLink(row: Record<string, unknown>): Link {
 /** Links still in the inbox, newest first. */
 export async function getActiveLinks(): Promise<Link[]> {
   const rows = await sql`
-    select id, url, title, domain, topic_tags, intent_tag, created_at, done_at
+    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at
     from links where done_at is null
     order by created_at desc, id desc`;
   return rows.map(toLink);
@@ -35,7 +36,7 @@ const DONE_LIMIT = 300;
 /** Links marked done, most recently done first. */
 export async function getDoneLinks(): Promise<Link[]> {
   const rows = await sql`
-    select id, url, title, domain, topic_tags, intent_tag, created_at, done_at
+    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at
     from links where done_at is not null
     order by done_at desc, id desc
     limit ${DONE_LIMIT}`;
@@ -51,7 +52,7 @@ export async function getAllTopicTags(): Promise<string[]> {
 
 export async function getLink(id: number): Promise<Link | null> {
   const rows = await sql`
-    select id, url, title, domain, topic_tags, intent_tag, created_at, done_at
+    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at
     from links where id = ${id}`;
   return rows[0] ? toLink(rows[0]) : null;
 }
@@ -84,7 +85,7 @@ export async function updateLink(id: number, patch: LinkPatch): Promise<Link | n
         topic_tags = case when ${setTags}::boolean then ${patch.topic_tags ?? []}::text[] else topic_tags end,
         intent_tag = case when ${setIntent}::boolean then ${patch.intent_tag ?? null}::text else intent_tag end
       where id = ${id}
-      returning id, url, title, domain, topic_tags, intent_tag, created_at, done_at
+      returning id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at
     ),
     logged as (
       insert into tag_feedback (link_id, before_topic_tags, before_intent_tag, after_topic_tags, after_intent_tag)
@@ -94,6 +95,12 @@ export async function updateLink(id: number, patch: LinkPatch): Promise<Link | n
     )
     select * from updated`;
   return rows[0] ? toLink(rows[0]) : null;
+}
+
+/** Deletes a link for good (its tag-edit history goes with it). False if it didn't exist. */
+export async function deleteLink(id: number): Promise<boolean> {
+  const rows = await sql`delete from links where id = ${id} returning id`;
+  return rows.length > 0;
 }
 
 /** How many links are still open and how many are done (for the footer). */

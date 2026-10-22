@@ -18,9 +18,10 @@ const client = new Anthropic({ timeout: 30_000, maxRetries: 2 });
 const TagsSchema = z.object({
   topic_tags: z.array(z.string()),
   intent_tag: z.enum(INTENTS),
+  description: z.string(),
 });
 
-export type Tags = { topic_tags: string[]; intent_tag: Intent };
+export type Tags = { topic_tags: string[]; intent_tag: Intent; description: string };
 
 const SYSTEM = `You tag saved web links for a personal reading inbox.
 
@@ -31,6 +32,9 @@ Return:
 - intent_tag: exactly one of:
   read (articles, essays, threads), watch (videos, talks, films), buy (products, shopping),
   try (recipes, tools, apps, places to visit, things to do), reference (docs, guides, cheat sheets to look things up in later).
+- description: one plain sentence, at most 15 words, saying what the page is or offers, so the person
+  remembers why they saved it. Don't repeat the title word for word, and don't start with "This page" or "An article".
+  Only state what the title, URL and page description support; never invent specifics. If unsure, describe the kind of page.
 
 Sometimes you also get examples of how this person tagged links themselves. Their choices win over the guidance above:
 match their intents and topic tags for similar links (same website, same kind of page), and avoid repeating guesses they corrected.`;
@@ -40,6 +44,8 @@ export async function tagLink(
   existingTags: string[],
   /** Past edits from formatExamples() in learning.ts; "" if there are none yet. */
   examples = "",
+  /** The page's own meta description, if we could fetch it. */
+  pageDescription: string | null = null,
 ): Promise<Tags> {
   const response = await client.messages.parse({
     model: "claude-haiku-5-5",
@@ -58,6 +64,7 @@ export async function tagLink(
           `Title: ${link.title}`,
           `URL: ${link.url}`,
           `Domain: ${link.domain}`,
+          ...(pageDescription ? [`Page description: ${pageDescription}`] : []),
         ].join("\n"),
       },
     ],
@@ -66,6 +73,11 @@ export async function tagLink(
   if (response.stop_reason === "refusal" || !response.parsed_output) {
     throw new Error(`Claude returned no tags (stop_reason: ${response.stop_reason})`);
   }
-  const { topic_tags, intent_tag } = response.parsed_output;
-  return { topic_tags: cleanTags(topic_tags, existingTags), intent_tag };
+  const { topic_tags, intent_tag, description } = response.parsed_output;
+  return {
+    topic_tags: cleanTags(topic_tags, existingTags),
+    intent_tag,
+    // Keep it one short line even if Claude runs long.
+    description: description.replace(/\s+/g, " ").trim().slice(0, 200),
+  };
 }

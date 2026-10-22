@@ -1,7 +1,7 @@
 // Run with: npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { extractTitle, fetchTitle, fetchYouTubeTitle, isUsefulTitle } from "./title.ts";
+import { extractDescription, extractTitle, fetchTitle, fetchYouTubeTitle, isUsefulTitle } from "./title.ts";
 
 test("extractTitle prefers og:title and decodes entities", () => {
   assert.equal(
@@ -39,4 +39,13 @@ test("fetchTitle falls back to the URL when YouTube oEmbed fails", async (t) => 
   }));
   // oEmbed reply isn't valid JSON → null; page title "YouTube" is rejected → URL fallback.
   assert.equal(await fetchTitle("https://www.youtube.com/watch?v=abc"), "youtube.com");
+});
+
+test("extractDescription prefers og:description, then meta description", () => {
+  assert.equal(
+    extractDescription('<meta name="description" content="Plain one"><meta property="og:description" content="Tom &amp; Jerry, explained.">'),
+    "Tom & Jerry, explained.",
+  );
+  assert.equal(extractDescription('<meta content="Reversed  order" name="description">'), "Reversed order");
+  assert.equal(extractDescription("<title>No description</title>"), null);
 });

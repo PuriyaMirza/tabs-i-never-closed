@@ -4,7 +4,7 @@
 import { useState } from "react";
 import type { Link } from "@/lib/types.ts";
 import { insertNewestFirst } from "@/lib/order.ts";
-import { patchLink } from "./api.ts";
+import { deleteLink, patchLink } from "./api.ts";
 import LinkCard from "./LinkCard.tsx";
 import Footer from "./Footer.tsx";
 import Toast, { useToast } from "./Toast.tsx";
@@ -38,6 +38,18 @@ export default function DoneClient({ initialLinks, initialOpenCount, serverNow }
     }
   }
 
+  // Delete: gone right away. If the server says no, it comes back.
+  async function remove(link: Link) {
+    setLinks((prev) => prev.filter((l) => l.id !== link.id));
+    try {
+      await deleteLink(link.id);
+      show("Deleted");
+    } catch (err) {
+      setLinks((prev) => insertNewestFirst(prev, link, byDoneTime));
+      show(err instanceof Error ? `Couldn't delete: ${err.message}` : "Couldn't delete");
+    }
+  }
+
   async function undoRestore(link: Link) {
     try {
       const done = await patchLink(link.id, { done: true });
@@ -67,6 +79,7 @@ export default function DoneClient({ initialLinks, initialOpenCount, serverNow }
               suggestionsId=""
               onChange={() => {}}
               onMove={restore}
+              onDelete={remove}
             />
           ))}
         </ul>

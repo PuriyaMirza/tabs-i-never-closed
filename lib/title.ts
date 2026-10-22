@@ -1,17 +1,25 @@
-// Fetches a page's <title>. Never throws: on any problem it returns a
-// readable title built from the URL instead, so saving a link never fails
-// because a site was slow or blocked us.
+// Fetches a page's <title> (and its short meta description, if it has one).
+// Never throws: on any problem it returns a readable title built from the URL
+// instead, so saving a link never fails because a site was slow or blocked us.
 import { domainOf, titleFromUrl } from "./url.ts";
 
 const TIMEOUT_MS = 5000;
 // Titles live near the top of the HTML; no need to download whole pages.
 const MAX_BYTES = 512 * 1024;
 
+export type PageInfo = { title: string; description: string | null };
+
 export async function fetchTitle(url: string): Promise<string> {
+  return (await fetchPageInfo(url)).title;
+}
+
+export async function fetchPageInfo(url: string): Promise<PageInfo> {
+  const fallback = (): PageInfo => ({ title: titleFromUrl(url), description: null });
+
   // YouTube shows servers a generic page titled just "YouTube", so ask its
   // official oEmbed service for the real video title instead.
   const videoTitle = await fetchYouTubeTitle(url);
-  if (videoTitle) return videoTitle;
+  if (videoTitle) return { title: videoTitle, description: null };
 
   try {
     const res = await fetch(url, {
@@ -26,14 +34,17 @@ export async function fetchTitle(url: string): Promise<string> {
       },
     });
     const type = res.headers.get("content-type") ?? "";
-    if (!res.ok || !res.body || !type.includes("html")) return titleFromUrl(url);
+    if (!res.ok || !res.body || !type.includes("html")) return fallback();
 
     const html = await readStart(res.body, MAX_BYTES);
     const title = extractTitle(html);
-    return title && isUsefulTitle(title, url) ? title : titleFromUrl(url);
+    return {
+      title: title && isUsefulTitle(title, url) ? title : titleFromUrl(url),
+      description: extractDescription(html),
+    };
   } catch {
     // Timeout, DNS failure, TLS error, … → fall back quietly.
-    return titleFromUrl(url);
+    return fallback();
   }
 }
 
@@ -53,6 +64,17 @@ async function readStart(body: ReadableStream<Uint8Array>, maxBytes: number): Pr
   }
   reader.cancel().catch(() => {});
   return text;
+}
+
+/** The page's own summary: og:description, else <meta name="description">. */
+export function extractDescription(html: string): string | null {
+  const pick = (attr: string) =>
+    html.match(new RegExp(`<meta[^>]+${attr}["'][^>]*content=["']([^"']+)["']`, "i")) ??
+    html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*${attr}["']`, "i"));
+  const raw = pick(`property=["']og:description`)?.[1] ?? pick(`name=["']description`)?.[1];
+  if (!raw) return null;
+  const clean = decodeEntities(raw).replace(/\s+/g, " ").trim();
+  return clean.length > 0 ? clean.slice(0, 500) : null;
 }
 
 /** Prefers og:title (often cleaner), then <title>. */

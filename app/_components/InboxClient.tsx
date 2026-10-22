@@ -20,7 +20,7 @@ import {
   type TagMode,
 } from "@/lib/filter.ts";
 import { insertNewestFirst } from "@/lib/order.ts";
-import { patchLink } from "./api.ts";
+import { deleteLink, patchLink } from "./api.ts";
 import LinkCard from "./LinkCard.tsx";
 import Footer from "./Footer.tsx";
 import Toast, { useToast } from "./Toast.tsx";
@@ -84,6 +84,18 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
       setLinks((prev) => insertNewestFirst(prev, restored, (l) => l.created_at));
     } catch (err) {
       show(err instanceof Error ? `Couldn't undo: ${err.message}` : "Couldn't undo");
+    }
+  }
+
+  // Delete: gone right away. If the server says no, it comes back.
+  async function remove(link: Link) {
+    setLinks((prev) => prev.filter((l) => l.id !== link.id));
+    try {
+      await deleteLink(link.id);
+      show("Deleted");
+    } catch (err) {
+      setLinks((prev) => insertNewestFirst(prev, link, (l) => l.created_at));
+      show(err instanceof Error ? `Couldn't delete: ${err.message}` : "Couldn't delete");
     }
   }
 
@@ -216,6 +228,7 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
               suggestionsId={SUGGESTIONS_ID}
               onChange={replaceLink}
               onMove={markDone}
+              onDelete={remove}
             />
           ))}
         </ul>

@@ -11,6 +11,8 @@ export type Link = {
   domain: string;
   topic_tags: string[];
   intent_tag: Intent | null;
+  /** One short sentence about the page, written by Claude. null until it's been written. */
+  description: string | null;
   // ISO date strings, e.g. "2026-10-20T08:15:00.000Z"
   created_at: string;
   done_at: string | null;

@@ -2,7 +2,7 @@
 // This runs after the save response is sent, so the Shortcut gets an instant
 // answer. If tagging fails, the link simply stays untagged and can be retagged.
 import { sql } from "./db.ts";
-import { fetchTitle } from "./title.ts";
+import { fetchPageInfo } from "./title.ts";
 import { tagLink } from "./tagger.ts";
 import { formatExamples, getTaggingExamples } from "./learning.ts";
 
@@ -27,18 +27,22 @@ export async function enrichLinks(
 
   await runWithLimit(targets, 5, async (link) => {
     try {
+      let pageDescription: string | null = null;
       if (opts.fetchTitles) {
-        link.title = await fetchTitle(link.url); // never throws
+        const page = await fetchPageInfo(link.url); // never throws
+        link.title = page.title;
+        pageDescription = page.description;
         await sql`update links set title = ${link.title} where id = ${link.id}`;
       }
       // Show Claude how you tagged similar links (learning from your edits).
       const examples = formatExamples(await getTaggingExamples(link.domain, link.id));
-      const result = await tagLink(link, tags, examples);
+      const result = await tagLink(link, tags, examples, pageDescription);
       // Also remember Claude's guess, so later edits can be compared with it.
       await sql`
         update links
         set topic_tags = ${result.topic_tags}, intent_tag = ${result.intent_tag},
-            ai_topic_tags = ${result.topic_tags}, ai_intent_tag = ${result.intent_tag}
+            ai_topic_tags = ${result.topic_tags}, ai_intent_tag = ${result.intent_tag},
+            description = ${result.description}
         where id = ${link.id}`;
       for (const t of result.topic_tags) if (!tags.includes(t)) tags.push(t);
       tagged.push(link.id);
@@ -50,6 +54,32 @@ export async function enrichLinks(
   });
 
   return { tagged, failed };
+}
+
+/**
+ * Writes the one-sentence description for links that don't have one yet
+ * (e.g. saved before descriptions existed). Only the description is saved;
+ * your tags are never touched. Runs in the background when the inbox opens.
+ */
+export async function describeMissing(limit: number): Promise<number> {
+  const rows = await sql`
+    select id, url, title, domain from links
+    where description is null and done_at is null
+    order by created_at desc limit ${limit}`;
+  if (rows.length === 0) return 0;
+  const tags = await getExistingTags();
+  let written = 0;
+  await runWithLimit(rows as Target[], 4, async (link) => {
+    try {
+      const page = await fetchPageInfo(link.url); // never throws
+      const { description } = await tagLink(link, tags, "", page.description);
+      await sql`update links set description = ${description} where id = ${link.id} and description is null`;
+      written++;
+    } catch (err) {
+      console.error(`Describing link ${link.id} failed:`, err instanceof Error ? err.message : err);
+    }
+  });
+  return written;
 }
 
 /** Runs `fn` over `items`, at most `limit` at a time. */
