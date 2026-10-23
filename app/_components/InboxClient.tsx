@@ -1,7 +1,7 @@
 "use client";
-// The interactive inbox: filters, search, "Surprise me", Done + Undo, and the
-// per-card tag editing. The links themselves arrive as props, already loaded
-// by the server (see app/page.tsx).
+// The interactive inbox: filters, search, "Surprise me" (+ its "Done with
+// it?" prompt), Done + Undo, and the per-card tag editing. The links
+// themselves arrive as props, already loaded by the server (see app/page.tsx).
 import { useMemo, useState } from "react";
 import type { Link } from "@/lib/types.ts";
 import { INTENTS } from "@/lib/types.ts";
@@ -44,6 +44,8 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
   // Search box and filter panel stay tucked away until their word is tapped.
   const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // The link "Surprise me" last opened, until you answer "Done with it?".
+  const [surprisedId, setSurprisedId] = useState<number | null>(null);
   const now = useNow(serverNow);
   const { toast, show, hide } = useToast();
 
@@ -59,6 +61,9 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
   const suggestions = useMemo(() => [...new Set([...allTags, ...topics])].sort(), [allTags, topics]);
   const filtering = hasActiveFilters(activeFilters);
   const activeChipCount = Object.keys(activeFilters.tags).length;
+  // Looked up in the list, so the prompt goes away by itself if the link is
+  // marked done or deleted some other way.
+  const surprised = links.find((l) => l.id === surprisedId);
 
   function replaceLink(updated: Link) {
     setLinks((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
@@ -102,9 +107,12 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
   // "Surprise me" opens the link in a new tab. window.open must be called
   // directly inside the tap handler (no await before it), or iPhone Safari
   // treats it as a pop-up and blocks it.
+  // Then "Done with it?" waits at the bottom for when you come back.
   function surpriseMe() {
     const pick = pickRandom(visible);
-    if (pick) window.open(pick.url, "_blank", "noopener,noreferrer");
+    if (!pick) return;
+    window.open(pick.url, "_blank", "noopener,noreferrer");
+    setSurprisedId(pick.id);
   }
 
   const showSearch = searchOpen || filters.query !== "";
@@ -235,7 +243,20 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
       )}
 
       <Footer open={links.length} done={doneCount} />
-      <Toast toast={toast} onClose={hide} />
+      {/* Both sit at the bottom of the screen. A toast (like "Marked done ·
+          Undo") takes the spot for its 5 seconds, then the prompt is back. */}
+      {surprised && !toast ? (
+        <SurprisePrompt
+          link={surprised}
+          onDone={() => {
+            setSurprisedId(null);
+            markDone(surprised);
+          }}
+          onDismiss={() => setSurprisedId(null)}
+        />
+      ) : (
+        <Toast toast={toast} onClose={hide} />
+      )}
     </>
   );
 }
@@ -265,5 +286,24 @@ function Chip({
       {symbol}
       {label}
     </button>
+  );
+}
+
+// Asks about the link "Surprise me" opened, so it can be marked done without
+// scrolling to find it. Unlike a toast it doesn't go away by itself: it has
+// to still be there when you come back from reading.
+function SurprisePrompt({ link, onDone, onDismiss }: { link: Link; onDone: () => void; onDismiss: () => void }) {
+  return (
+    <div className="toast surprise-prompt" role="status" aria-live="polite">
+      <p>Done with “{link.title}”?</p>
+      <span className="surprise-buttons">
+        <button type="button" className="toast-action" onClick={onDone}>
+          Mark done
+        </button>
+        <button type="button" className="toast-action" onClick={onDismiss}>
+          Not yet
+        </button>
+      </span>
+    </div>
   );
 }
