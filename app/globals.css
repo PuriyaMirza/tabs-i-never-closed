@@ -19,7 +19,9 @@
   --sans: var(--font-sans), "Jost", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-html, body { overflow-x: hidden; } /* nothing may be wider than the screen */
+/* Nothing may be wider than the screen. ("clip", not "hidden": hidden would
+   turn the page into its own scroll box and break the reader's sticky bar.) */
+html, body { overflow-x: clip; }
 
 body {
   margin: 0;
@@ -334,6 +336,161 @@ a { color: var(--ink); }
 
 .empty { padding: 24px 0; color: var(--soft); font-size: 15px; }
 .error { margin: 0; color: var(--danger); font-size: 13px; font-weight: 400; }
+
+/* "Read offline · 9 KB" under a link whose text is saved (Save TXT). */
+.read-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  margin-top: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--outline);
+  border-radius: 999px;
+  color: var(--ink);
+  font: 400 12px/1 var(--sans);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+.read-pill::after { content: ""; position: absolute; inset: -7px 0; } /* 44pt tap area */
+.read-pill-size { color: var(--soft); }
+.doc-icon { flex: none; }
+
+/* ---------- Reader (/read/123): a link's saved text ---------- */
+.reader { padding-top: 40px; padding-left: 22px; padding-right: 22px; }
+
+/* Sticks to the top; shows the title once the big one has scrolled away. */
+.reader-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 -22px;
+  padding: 0 22px;
+  border-bottom: 1px solid transparent;
+  background: var(--bg);
+  font: 400 13px/1.4 var(--sans);
+  letter-spacing: 0.04em;
+}
+.reader-bar.is-stuck { border-bottom-color: var(--rule); }
+.reader-bar a {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.reader-bar .reader-original {
+  gap: 6px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.reader-bar-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  text-align: center;
+  font: italic 300 18px/1 var(--serif);
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.reader-bar.is-stuck .reader-bar-title { opacity: 1; }
+
+.reader-head { margin-top: 28px; padding-bottom: 24px; border-bottom: 1px solid var(--rule); }
+.reader-kicker {
+  margin: 0;
+  font: 400 11px/1.4 var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--indigo);
+}
+.reader-title { margin: 8px 0 0; font: 500 34px/1.08 var(--serif); overflow-wrap: anywhere; }
+.reader-byline { margin: 10px 0 0; font: 300 15px/1.4 var(--sans); }
+.reader-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 0 0;
+  font: 300 13px/1.5 var(--sans);
+  color: var(--soft);
+}
+
+.reader-body { padding-top: 24px; font: 300 17px/1.65 var(--sans); overflow-wrap: anywhere; }
+.reader-body p { margin: 0 0 1em; white-space: pre-line; }
+.reader-body h2 { margin: 1.6em 0 0.5em; font: 500 24px/1.15 var(--serif); }
+.reader-body .reader-li { position: relative; margin-bottom: 0.4em; padding-left: 1.1em; }
+.reader-body .reader-li::before { content: "–"; position: absolute; left: 0; }
+.reader-body blockquote {
+  margin: 0 0 1em;
+  padding-left: 14px;
+  border-left: 1px solid var(--outline);
+  color: var(--indigo);
+  white-space: pre-line;
+}
+
+/* Reddit: the top comments, replies indented under a thin thread line. */
+.comments { margin-top: 32px; }
+.comments-label {
+  margin: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+  font: 400 11px/1.4 var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--indigo);
+}
+.comment { padding-top: 12px; }
+.comment.is-top { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--rule-faint); }
+.comments-label + .comment.is-top { border-top: 0; }
+.comment:not(.is-top) { padding-left: 14px; border-left: 1px solid var(--rule); }
+.comment-meta { margin: 0; font: 400 12px/1.4 var(--sans); letter-spacing: 0.04em; color: var(--soft); }
+.comment-text { margin: 4px 0 0; font: 300 15px/1.6 var(--sans); white-space: pre-line; overflow-wrap: anywhere; }
+
+/* The end: "Done with …?" with Mark done / Not yet. */
+.reader-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+  text-align: center;
+}
+.reader-end-question { margin: 0; font: 400 17px/1.35 var(--sans); letter-spacing: 0.04em; overflow-wrap: anywhere; }
+.reader-end-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font: 400 15px/1.4 var(--sans);
+  letter-spacing: 0.04em;
+}
+.done-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font: inherit;
+  letter-spacing: inherit;
+  box-shadow: 0 6px 18px rgba(26, 24, 86, 0.22);
+  cursor: pointer;
+}
+.done-button:disabled { opacity: 0.5; cursor: default; }
 
 /* ---------- Footer ---------- */
 .foot {

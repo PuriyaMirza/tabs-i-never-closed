@@ -37,10 +37,27 @@ export async function fetchPageInfo(url: string): Promise<PageInfo> {
   const videoTitle = await fetchYouTubeTitle(url);
   if (videoTitle) return { title: videoTitle, description: null, text: null, searchQuery: null };
 
+  const html = await fetchHtml(url, MAX_BYTES, TIMEOUT_MS);
+  if (html === null) return fallback();
+  const title = extractTitle(html);
+  return {
+    title: title && isUsefulTitle(title, url) ? title : titleFromUrl(url),
+    description: extractDescription(html),
+    text: extractPageText(html),
+    searchQuery: null,
+  };
+}
+
+/**
+ * Downloads a web page's HTML (at most `maxBytes` of it), looking like a phone
+ * browser. Null if it isn't an HTML page or can't be loaded (timeout, DNS
+ * failure, TLS error, …).
+ */
+export async function fetchHtml(url: string, maxBytes: number, timeoutMs: number): Promise<string | null> {
   try {
     const res = await fetch(url, {
       redirect: "follow",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       headers: {
         // Some sites refuse requests that don't look like a browser.
         "user-agent":
@@ -50,19 +67,10 @@ export async function fetchPageInfo(url: string): Promise<PageInfo> {
       },
     });
     const type = res.headers.get("content-type") ?? "";
-    if (!res.ok || !res.body || !type.includes("html")) return fallback();
-
-    const html = await readStart(res.body, MAX_BYTES);
-    const title = extractTitle(html);
-    return {
-      title: title && isUsefulTitle(title, url) ? title : titleFromUrl(url),
-      description: extractDescription(html),
-      text: extractPageText(html),
-      searchQuery: null,
-    };
+    if (!res.ok || !res.body || !type.includes("html")) return null;
+    return await readStart(res.body, maxBytes);
   } catch {
-    // Timeout, DNS failure, TLS error, … → fall back quietly.
-    return fallback();
+    return null;
   }
 }
 

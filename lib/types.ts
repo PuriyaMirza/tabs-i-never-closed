@@ -13,6 +13,8 @@ export type Link = {
   intent_tag: Intent | null;
   /** One short sentence about the page, written by Claude. null until it's been written. */
   description: string | null;
+  /** Size of the text saved with "Save TXT", in bytes. null = no text saved. */
+  text_bytes: number | null;
   // ISO date strings, e.g. "2026-10-20T08:15:00.000Z"
   created_at: string;
   done_at: string | null;

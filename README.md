@@ -34,12 +34,20 @@ that the iOS Shortcut can show.
 | `GET /api/links/[id]` | One link, as `{"link": {...}}`. |
 | `PATCH /api/links/[id]` body `{"done": true, "topic_tags": ["a"], "intent_tag": "read"}` | Edit a link (every field optional). Replies with the updated `link`, or 404. |
 | `POST /api/links/retag` | Tag up to 20 untagged links. Optional body `{"ids": [1,2]}` retags specific links. |
+| `POST /api/links/[id]/text` | "Save TXT": pull the page's readable text out and keep it for offline reading. Replies with the updated `link` (its `text_bytes` is set), or 422 with a `message` if the page has no readable text. |
+| `DELETE /api/links/[id]/text` | Remove a link's saved text. Replies with the updated `link`. |
 
 ## Web app
 
 Open the site and log in with `APP_PASSWORD`. `/` is the inbox (filters, search, Done + Undo,
 tag editing, "Surprise me") and `/done` lists finished links with a Restore button.
 Changing `APP_PASSWORD` logs every device out.
+
+**Save TXT:** open a link's actions and tap Save TXT to keep its text in the app. A "Read offline"
+pill then opens `/read/[id]`, a clean reader that works without a connection. Articles are pulled
+out with Mozilla Readability (free); Reddit threads come from Reddit's JSON (the post and its top
+50 comments, free); when Readability finds nothing, Claude Haiku cleans up the page instead
+(about a tenth of a cent per page). The text is about 10 KB per article.
 
 `/test` is a small page for calling these from a phone browser.
 

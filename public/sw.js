@@ -8,9 +8,12 @@
 //   * Scripts, styles and icons: serve from the saved copy first, because
 //     their file names change whenever their contents change.
 //   * Everything else (especially /api/*, and any POST): not touched at all.
+//   * "Save TXT": when the app says a link's text was saved, keep a copy of
+//     its reader page (/read/123) and that page's scripts right away, so it
+//     opens offline even if it was never opened while online.
 //
 // When you change this file, bump VERSION so old caches are thrown away.
-const VERSION = "v1";
+const VERSION = "v2";
 const PAGES_CACHE = `pages-${VERSION}`;
 const STATIC_CACHE = `static-${VERSION}`;
 
@@ -83,10 +86,20 @@ self.addEventListener("fetch", (event) => {
   // load, which is handled by handleNavigation above.
 });
 
-// The page just loaded told us which script files it used (see PwaClient.tsx).
 self.addEventListener("message", (event) => {
   const data = event.data;
-  if (!data || data.type !== "cache-urls" || !Array.isArray(data.urls)) return;
+  if (!data) return;
+  // A link's text was saved or removed (see app/_components/offline.ts).
+  if (data.type === "cache-page" && typeof data.path === "string") {
+    event.waitUntil(saveReaderPage(data.path));
+    return;
+  }
+  if (data.type === "drop-page" && typeof data.path === "string") {
+    event.waitUntil(dropReaderPage(data.path));
+    return;
+  }
+  // The page just loaded told us which script files it used (see PwaClient.tsx).
+  if (data.type !== "cache-urls" || !Array.isArray(data.urls)) return;
   event.waitUntil(
     (async () => {
       const cache = await caches.open(STATIC_CACHE);
@@ -106,6 +119,43 @@ self.addEventListener("message", (event) => {
     })(),
   );
 });
+
+// Only reader pages (/read/123) are saved or dropped this way.
+function readerPageUrl(path) {
+  const url = new URL(path, self.location.origin);
+  return url.origin === self.location.origin && /^\/read\/\d+$/.test(url.pathname) ? url : null;
+}
+
+async function saveReaderPage(path) {
+  const url = readerPageUrl(path);
+  if (!url) return;
+  try {
+    const response = await fetch(url.href, { credentials: "same-origin" });
+    if (!shouldSavePage(response, url)) return;
+    const html = await response.clone().text();
+    const pages = await caches.open(PAGES_CACHE);
+    await pages.put(url.origin + url.pathname, response);
+    // Also the page's own scripts and styles, so it works offline, not just shows.
+    const statics = await caches.open(STATIC_CACHE);
+    const files = new Set(html.match(/\/_next\/static\/[^"'\s)<>\\]+/g) ?? []);
+    for (const file of files) {
+      const href = new URL(file, self.location.origin).href;
+      if (await statics.match(href)) continue;
+      const res = await fetch(href).catch(() => null);
+      if (res && res.ok) await statics.put(href, res);
+    }
+    await trimCache(statics);
+  } catch {
+    // Offline or the server said no: the page is still saved the first time it's opened.
+  }
+}
+
+async function dropReaderPage(path) {
+  const url = readerPageUrl(path);
+  if (!url) return;
+  const pages = await caches.open(PAGES_CACHE);
+  await pages.delete(url.origin + url.pathname);
+}
 
 function isStaticAsset(pathname) {
   return (
