@@ -288,19 +288,33 @@ function Chip({
 
 // Asks about the link "Surprise me" opened, so it can be marked done without
 // scrolling to find it. Unlike a toast it doesn't go away by itself: it has
-// to still be there when you come back from reading.
+// to still be there when you come back from reading. Tapping the dimmed page
+// around it is the same as "Not yet".
 function SurprisePrompt({ link, onDone, onDismiss }: { link: Link; onDone: () => void; onDismiss: () => void }) {
   return (
-    <div className="toast surprise-prompt" role="status" aria-live="polite">
-      <p>Done with “{link.title}”?</p>
-      <span className="surprise-buttons">
-        <button type="button" className="toast-action" onClick={onDone}>
-          Mark done
-        </button>
-        <button type="button" className="toast-action" onClick={onDismiss}>
-          Not yet
-        </button>
-      </span>
-    </div>
+    <>
+      <div className="surprise-overlay" aria-hidden="true" onClick={onDismiss} />
+      <div className="toast surprise-prompt" role="status" aria-live="polite">
+        <p>Done with “{link.title}”?</p>
+        <span className="surprise-buttons">
+          <button type="button" className="toast-action" onClick={onDone}>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <circle cx="9" cy="9" r="8" stroke="currentColor" strokeWidth="1.25" />
+              <path
+                d="M5.5 9.25L7.9 11.5L12.5 6.75"
+                stroke="currentColor"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Mark done
+          </button>
+          <button type="button" className="toast-action" onClick={onDismiss}>
+            Not yet
+          </button>
+        </span>
+      </div>
+    </>
   );
 }
