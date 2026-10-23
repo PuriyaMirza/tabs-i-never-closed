@@ -351,22 +351,32 @@ a { color: var(--ink); }
   cursor: pointer;
 }
 
-/* "Done with …?" after Surprise me: the toast's look, but in the middle of
-   the screen, a little bigger, with room for the title (up to 2 lines)
-   above the buttons. */
+/* "Done with …?" after Surprise me: the toast's look, but bigger, in the
+   middle of the screen over a light navy overlay, with room for the title
+   (up to 2 lines) above the buttons. */
+.surprise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(26, 24, 86, 0.25);
+}
 .surprise-prompt {
   top: 50%;
   bottom: auto;
   transform: translateY(-50%);
+  z-index: 11;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0;
-  padding: 14px 20px 4px;
+  gap: 12px;
+  padding: 30px 24px 18px;
   border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(26, 24, 86, 0.3);
   font-size: 15px;
 }
 .surprise-prompt p {
   margin: 0;
+  font-size: 17px;
+  line-height: 1.35;
   overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -374,7 +384,15 @@ a { color: var(--ink); }
   line-clamp: 2;
   overflow: hidden;
 }
-.surprise-buttons { display: flex; margin-left: -10px; } /* line the first word up with the text */
+/* "Mark done" (with its check icon) on the left, "Not yet" on the right,
+   both lined up with the text above. */
+.surprise-buttons {
+  align-self: stretch;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 -10px;
+}
+.surprise-buttons .toast-action { display: inline-flex; align-items: center; gap: 8px; }
 
 /* Slim bar shown at the top while the phone is offline (see PwaClient.tsx). */
 .offline-banner {
