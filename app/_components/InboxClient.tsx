@@ -1,7 +1,7 @@
 "use client";
 // The interactive inbox: filters, search, "Surprise me" (+ its "Done with
-// it?" prompt), Done + Undo, and the per-card tag editing. The links themselves arrive as props, already loaded
-// by the server (see app/page.tsx).
+// it?" prompt), Done + Undo, and the per-card tag editing. The links
+// themselves arrive as props, already loaded by the server (see app/page.tsx).
 import { useMemo, useState } from "react";
 import type { Link } from "@/lib/types.ts";
 import { INTENTS } from "@/lib/types.ts";
