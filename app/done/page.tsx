@@ -2,7 +2,6 @@
 // Like the inbox, the links are rendered into the HTML on the server.
 import { requireLogin } from "@/lib/page-auth.ts";
 import { getCounts, getDoneLinks } from "@/lib/links.ts";
-import Nav from "../_components/Nav.tsx";
 import DoneClient from "../_components/DoneClient.tsx";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +13,7 @@ export default async function DonePage() {
 
   return (
     <main>
-      <Nav current="done" />
+      {/* The header is drawn by DoneClient, so its open count stays current. */}
       <DoneClient initialLinks={links} initialOpenCount={counts.open} serverNow={new Date().toISOString()} />
     </main>
   );

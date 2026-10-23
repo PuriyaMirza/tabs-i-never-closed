@@ -6,7 +6,6 @@ import { after } from "next/server";
 import { requireLogin } from "@/lib/page-auth.ts";
 import { describeMissing } from "@/lib/enrich.ts";
 import { getActiveLinks, getAllTopicTags, getCounts } from "@/lib/links.ts";
-import Nav from "./_components/Nav.tsx";
 import InboxClient from "./_components/InboxClient.tsx";
 
 // Always read fresh data; never build this page ahead of time.
@@ -26,7 +25,7 @@ export default async function Home() {
 
   return (
     <main>
-      <Nav current="inbox" />
+      {/* The header is drawn by InboxClient, so its open count stays current. */}
       <InboxClient
         initialLinks={links}
         initialDoneCount={counts.done}
