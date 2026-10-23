@@ -351,14 +351,19 @@ a { color: var(--ink); }
   cursor: pointer;
 }
 
-/* "Done with …?" after Surprise me: the toast's look, with room for the
-   title (up to 2 lines) above the buttons. */
+/* "Done with …?" after Surprise me: the toast's look, but in the middle of
+   the screen, a little bigger, with room for the title (up to 2 lines)
+   above the buttons. */
 .surprise-prompt {
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
   flex-direction: column;
   align-items: flex-start;
   gap: 0;
-  padding: 12px 18px 2px;
+  padding: 14px 20px 4px;
   border-radius: 20px;
+  font-size: 15px;
 }
 .surprise-prompt p {
   margin: 0;
@@ -370,8 +375,6 @@ a { color: var(--ink); }
   overflow: hidden;
 }
 .surprise-buttons { display: flex; margin-left: -10px; } /* line the first word up with the text */
-/* It stays up, so leave room to scroll the last row out from under it. */
-main:has(.surprise-prompt) { padding-bottom: 140px; }
 
 /* Slim bar shown at the top while the phone is offline (see PwaClient.tsx). */
 .offline-banner {

@@ -107,7 +107,7 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
   // "Surprise me" opens the link in a new tab. window.open must be called
   // directly inside the tap handler (no await before it), or iPhone Safari
   // treats it as a pop-up and blocks it.
-  // Then "Done with it?" waits at the bottom for when you come back.
+  // Then "Done with it?" waits mid-screen for when you come back.
   function surpriseMe() {
     const pick = pickRandom(visible);
     if (!pick) return;
@@ -243,9 +243,7 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
       )}
 
       <Footer open={links.length} done={doneCount} />
-      {/* Both sit at the bottom of the screen. A toast (like "Marked done ·
-          Undo") takes the spot for its 5 seconds, then the prompt is back. */}
-      {surprised && !toast ? (
+      {surprised && (
         <SurprisePrompt
           link={surprised}
           onDone={() => {
@@ -254,9 +252,8 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
           }}
           onDismiss={() => setSurprisedId(null)}
         />
-      ) : (
-        <Toast toast={toast} onClose={hide} />
       )}
+      <Toast toast={toast} onClose={hide} />
     </>
   );
 }
