@@ -7,6 +7,7 @@ import { insertNewestFirst } from "@/lib/order.ts";
 import { deleteLink, patchLink } from "./api.ts";
 import LinkCard from "./LinkCard.tsx";
 import Footer from "./Footer.tsx";
+import Nav from "./Nav.tsx";
 import Toast, { useToast } from "./Toast.tsx";
 import { useNow } from "./useNow.ts";
 
@@ -62,6 +63,7 @@ export default function DoneClient({ initialLinks, initialOpenCount, serverNow }
 
   return (
     <>
+      <Nav current="done" inboxCount={String(openCount)} />
       <section className="toolbar">
         <p className="count">({links.length} done)</p>
       </section>

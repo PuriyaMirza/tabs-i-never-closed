@@ -23,6 +23,7 @@ import { insertNewestFirst } from "@/lib/order.ts";
 import { deleteLink, patchLink } from "./api.ts";
 import LinkCard from "./LinkCard.tsx";
 import Footer from "./Footer.tsx";
+import Nav from "./Nav.tsx";
 import Toast, { useToast } from "./Toast.tsx";
 import { useNow } from "./useNow.ts";
 
@@ -119,10 +120,8 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
 
   return (
     <>
+      <Nav current="inbox" inboxCount={filtering ? `${visible.length} of ${links.length}` : String(links.length)} />
       <section className="toolbar" aria-label="Search and filters">
-        <p className="count" aria-live="polite">
-          ({filtering ? `${visible.length} of ${links.length}` : links.length} open)
-        </p>
         <p className="controls">
           <button
             type="button"
@@ -134,6 +133,10 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
               setSearchOpen(!showSearch);
             }}
           >
+            <svg className="link-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.25" />
+              <path d="M9.5 9.5L13 13" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+            </svg>
             Search
           </button>
           <span className="sep" aria-hidden="true">·</span>
@@ -144,10 +147,6 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
             onClick={() => setFiltersOpen((o) => !o)}
           >
             Filters{activeChipCount > 0 ? ` (${activeChipCount})` : ""}
-          </button>
-          <span className="sep" aria-hidden="true">·</span>
-          <button type="button" className="text-link" disabled={visible.length === 0} onClick={surpriseMe}>
-            Surprise me
           </button>
           {filtering && (
             <>
@@ -164,6 +163,9 @@ export default function InboxClient({ initialLinks, initialDoneCount, allTags, s
               </button>
             </>
           )}
+          <button type="button" className="pill-button" disabled={visible.length === 0} onClick={surpriseMe}>
+            Surprise me
+          </button>
         </p>
 
         {showSearch && (

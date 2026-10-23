@@ -10,6 +10,7 @@
   --teal: #a6dcd9;      /* the intent tag */
   --soft: rgba(51, 48, 138, 0.8);   /* indigo, softened */
   --rule: rgba(26, 24, 86, 0.15);   /* hairlines */
+  --rule-faint: rgba(26, 24, 86, 0.1); /* between links in the list */
   --outline: rgba(26, 24, 86, 0.45);/* tag outlines */
   --dashed: rgba(26, 24, 86, 0.35); /* "+ Tag" outline */
   --danger: #b42318;
@@ -37,8 +38,8 @@ main {
 a { color: var(--ink); }
 .sep { margin: 0 0.75em; }
 
-/* ---------- Header: app name, then Inbox · Done ---------- */
-.masthead { padding-top: 72px; }
+/* ---------- Header: app name, then the Inbox / Done tabs ---------- */
+.masthead { padding-top: 65px; }
 .app-title {
   margin: 0;
   font: italic 300 38px/0.98 var(--serif);
@@ -46,27 +47,30 @@ a { color: var(--ink); }
 }
 .views {
   display: flex;
-  align-items: center;
-  margin-top: 20px;
-  padding-bottom: 18px;
+  align-items: flex-end;
+  gap: 28px;
+  margin-top: 4px;
   border-bottom: 1px solid var(--rule);
   font: 400 12px/1 var(--sans);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
+/* Each tab is 44pt tall. The current one gets a navy bar that sits on the
+   hairline below. */
 .views a {
-  /* 44pt-tall tap area without changing how the line looks */
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  margin: -16px 0;
+  gap: 8px;
+  padding: 16px 0 14px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
   color: var(--soft);
   text-decoration: none;
 }
-.views a[aria-current="page"] { color: var(--ink); }
-.views .sep { color: var(--soft); }
+.views a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tab-count { font-weight: 300; letter-spacing: 0.06em; text-transform: none; color: var(--indigo); } /* "(5 of 36)" while filtering */
 
-/* ---------- Count, Search · Filters · Surprise me ---------- */
+/* ---------- Search · Filters, and the Surprise me pill ---------- */
 .toolbar { margin: 28px 0 40px; }
 .count {
   margin: 0 0 12px;
@@ -103,6 +107,26 @@ a { color: var(--ink); }
 }
 .text-link:disabled { opacity: 0.4; cursor: default; }
 .text-link.danger { color: var(--danger); }
+.link-icon { margin-right: 6px; } /* the magnifier before "Search" (not underlined) */
+
+/* "Surprise me": an outlined pill pushed to the right end of the row. */
+.pill-button {
+  position: relative;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 16px;
+  border: 1px solid var(--outline);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.pill-button::after { content: ""; position: absolute; inset: -5px 0; } /* 44pt tap area */
+.pill-button:disabled { opacity: 0.4; cursor: default; }
 .confirm-text { margin-right: 0.9em; }
 
 /* Search box: just a line to write on. 16px stops iPhone zooming in. */
@@ -187,15 +211,18 @@ a { color: var(--ink); }
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 26px;
 }
+/* A faint rule halfway between links. */
 .row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 8px 0;
+  padding: 21px 0;
   min-width: 0;
 }
+.row + .row { border-top: 1px solid var(--rule-faint); }
+.row:first-child { padding-top: 8px; }
+.row:last-child { padding-bottom: 8px; }
 .row-dot {
   flex: none;
   width: 9px;
