@@ -22,6 +22,10 @@ create table if not exists links (
   done_at     timestamptz
 );
 
+-- "Save TXT": the readable text of a link, for reading offline in the app
+-- (see lib/savedtext.ts for its shape). NULL = no text saved.
+alter table links add column if not exists saved_text jsonb;
+
 -- Speeds up "active links, newest first" (the main list).
 create index if not exists links_active_created_idx
   on links (created_at desc) where done_at is null;

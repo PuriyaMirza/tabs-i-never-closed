@@ -41,6 +41,18 @@ export async function deleteLink(id: number): Promise<void> {
   await call(`/api/links/${id}`, { method: "DELETE" });
 }
 
+/** "Save TXT": the server pulls out the page's text and keeps it. Returns the updated link. */
+export async function saveText(id: number): Promise<Link> {
+  const data = await call(`/api/links/${id}/text`, { method: "POST" });
+  return data.link as Link;
+}
+
+/** Removes a link's saved text. Returns the updated link. */
+export async function removeText(id: number): Promise<Link> {
+  const data = await call(`/api/links/${id}/text`, { method: "DELETE" });
+  return data.link as Link;
+}
+
 /** Asks Claude to tag one link, then loads the result. */
 export async function tagWithAi(id: number): Promise<Link> {
   const result = await call("/api/links/retag", { method: "POST", body: JSON.stringify({ ids: [id] }) });

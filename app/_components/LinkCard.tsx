@@ -2,13 +2,17 @@
 // One link in the list. Closed, it shows the title, the AI summary (up to 3
 // lines) and "site · saved …".
 // Tapping the triangle opens it to show the tags and actions:
-//   inbox ("active"): edit tags, change intent, mark done, delete
+//   inbox ("active"): edit tags, change intent, Save TXT, mark done, delete
 //   Done view: restore, delete
+// Once a link's text is saved, a "Read offline" pill under it opens the reader.
 import { useId, useState } from "react";
 import { INTENTS, type Intent, type Link } from "@/lib/types.ts";
 import { cleanTags, MAX_TOPIC_TAGS } from "@/lib/tags.ts";
+import { canSaveText, formatBytes } from "@/lib/savedtext.ts";
 import { timeAgo } from "@/lib/time.ts";
-import { patchLink, tagWithAi, type LinkChanges } from "./api.ts";
+import { patchLink, removeText, saveText, tagWithAi, type LinkChanges } from "./api.ts";
+import { forgetOffline, keepOffline, readerPath } from "./offline.ts";
+import DocIcon from "./DocIcon.tsx";
 import Triangle from "./Triangle.tsx";
 
 type Props = {
@@ -34,6 +38,8 @@ export default function LinkCard({ link, mode, now, knownTags, suggestionsId, on
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  // Which "Save TXT" job is running, for the button's label.
+  const [textJob, setTextJob] = useState<"save" | "remove" | null>(null);
   const detailsId = useId();
   const editable = mode === "active";
 
@@ -51,6 +57,30 @@ export default function LinkCard({ link, mode, now, knownTags, suggestionsId, on
   }
 
   const save = (changes: LinkChanges) => run(() => patchLink(link.id, changes));
+
+  // Save TXT: the server fetches the page's text; then the service worker
+  // keeps a copy of the reader page so it opens offline straight away.
+  async function saveTextNow() {
+    setTextJob("save");
+    await run(async () => {
+      const updated = await saveText(link.id);
+      keepOffline(readerPath(link.id));
+      return updated;
+    });
+    setTextJob(null);
+  }
+
+  async function removeTextNow() {
+    setTextJob("remove");
+    await run(async () => {
+      const updated = await removeText(link.id);
+      forgetOffline(readerPath(link.id));
+      return updated;
+    });
+    setTextJob(null);
+  }
+
+  const hasText = link.text_bytes != null;
 
   function removeTag(tag: string) {
     save({ topic_tags: link.topic_tags.filter((t) => t !== tag) });
@@ -89,6 +119,13 @@ export default function LinkCard({ link, mode, now, knownTags, suggestionsId, on
           <span className="sep" aria-hidden="true">·</span>
           {meta}
         </p>
+        {hasText && (
+          <a className="read-pill" href={readerPath(link.id)}>
+            <DocIcon />
+            Read offline
+            <span className="read-pill-size">· {formatBytes(link.text_bytes ?? 0)}</span>
+          </a>
+        )}
 
         {open && (
           <div className="row-details" id={detailsId}>
@@ -199,6 +236,20 @@ export default function LinkCard({ link, mode, now, knownTags, suggestionsId, on
                       >
                         {busy ? "Tagging…" : "Tag with AI"}
                       </button>
+                    </>
+                  )}
+                  {(hasText || canSaveText(link.url)) && (
+                    <>
+                      <span className="sep" aria-hidden="true">·</span>
+                      {hasText ? (
+                        <button type="button" className="text-link" disabled={busy} onClick={removeTextNow}>
+                          {textJob === "remove" ? "Removing text…" : "Remove text"}
+                        </button>
+                      ) : (
+                        <button type="button" className="text-link" disabled={busy} onClick={saveTextNow}>
+                          {textJob === "save" ? "Saving text…" : "Save TXT"}
+                        </button>
+                      )}
                     </>
                   )}
                   <span className="sep" aria-hidden="true">·</span>

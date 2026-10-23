@@ -3,6 +3,7 @@
 import { sql } from "./db.ts";
 import type { Link } from "./types.ts";
 import type { LinkPatch } from "./patch.ts";
+import type { SavedText } from "./savedtext.ts";
 
 // Turns a database row into a plain Link. The database driver may hand back
 // dates as Date objects; we always want ISO strings so they can be sent to
@@ -17,6 +18,7 @@ function toLink(row: Record<string, unknown>): Link {
     topic_tags: row.topic_tags as string[],
     intent_tag: row.intent_tag as Link["intent_tag"],
     description: (row.description as string | null) ?? null,
+    text_bytes: row.text_bytes == null ? null : Number(row.text_bytes),
     created_at: iso(row.created_at),
     done_at: row.done_at ? iso(row.done_at) : null,
   };
@@ -25,7 +27,8 @@ function toLink(row: Record<string, unknown>): Link {
 /** Links still in the inbox, newest first. */
 export async function getActiveLinks(): Promise<Link[]> {
   const rows = await sql`
-    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at
+    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at,
+      (saved_text->>'bytes')::int as text_bytes
     from links where done_at is null
     order by created_at desc, id desc`;
   return rows.map(toLink);
@@ -36,7 +39,8 @@ const DONE_LIMIT = 300;
 /** Links marked done, most recently done first. */
 export async function getDoneLinks(): Promise<Link[]> {
   const rows = await sql`
-    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at
+    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at,
+      (saved_text->>'bytes')::int as text_bytes
     from links where done_at is not null
     order by done_at desc, id desc
     limit ${DONE_LIMIT}`;
@@ -52,7 +56,8 @@ export async function getAllTopicTags(): Promise<string[]> {
 
 export async function getLink(id: number): Promise<Link | null> {
   const rows = await sql`
-    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at
+    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at,
+      (saved_text->>'bytes')::int as text_bytes
     from links where id = ${id}`;
   return rows[0] ? toLink(rows[0]) : null;
 }
@@ -85,7 +90,8 @@ export async function updateLink(id: number, patch: LinkPatch): Promise<Link | n
         topic_tags = case when ${setTags}::boolean then ${patch.topic_tags ?? []}::text[] else topic_tags end,
         intent_tag = case when ${setIntent}::boolean then ${patch.intent_tag ?? null}::text else intent_tag end
       where id = ${id}
-      returning id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at
+      returning id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at,
+        (saved_text->>'bytes')::int as text_bytes
     ),
     logged as (
       insert into tag_feedback (link_id, before_topic_tags, before_intent_tag, after_topic_tags, after_intent_tag)
@@ -94,6 +100,25 @@ export async function updateLink(id: number, patch: LinkPatch): Promise<Link | n
       where b.topic_tags is distinct from u.topic_tags or b.intent_tag is distinct from u.intent_tag
     )
     select * from updated`;
+  return rows[0] ? toLink(rows[0]) : null;
+}
+
+/** A link and the text saved for it with "Save TXT", or null if there's no such link or no text. */
+export async function getSavedText(id: number): Promise<{ link: Link; text: SavedText } | null> {
+  const rows = await sql`
+    select id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at,
+      (saved_text->>'bytes')::int as text_bytes, saved_text
+    from links where id = ${id} and saved_text is not null`;
+  return rows[0] ? { link: toLink(rows[0]), text: rows[0].saved_text as SavedText } : null;
+}
+
+/** Stores (or with null, removes) a link's saved text. Returns the updated link, or null if there's no such link. */
+export async function setSavedText(id: number, text: SavedText | null): Promise<Link | null> {
+  const rows = await sql`
+    update links set saved_text = ${text === null ? null : JSON.stringify(text)}::jsonb
+    where id = ${id}
+    returning id, url, title, domain, topic_tags, intent_tag, description, created_at, done_at,
+      (saved_text->>'bytes')::int as text_bytes`;
   return rows[0] ? toLink(rows[0]) : null;
 }
 
